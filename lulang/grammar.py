@@ -37,7 +37,7 @@ start: stmt*
      | empty_stmt
 
 print_stmt: PRINT ":" expr
-call_stmt: CALL NAME (":" arglist)?
+call_stmt: CALL NAME (":" arglist?)?
 assign_stmt: LET NAME "=" expr
            | lvalue "=" expr
 lvalue: NAME | NAME "." NAME | NAME "[" expr "]"
@@ -101,7 +101,7 @@ comparison: additive (comparison_op additive)?
      | INPUT ":"        -> input
      | "(" expr ")"
 
-call_expr: CALL NAME (":" arglist)?
+call_expr: CALL NAME (":" arglist?)?
 
 array_literal: "[" (expr ("," expr)*)? "]"
 object_literal: "{" (NAME ":" expr ("," NAME ":" expr)*)? "}"

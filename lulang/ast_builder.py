@@ -47,7 +47,7 @@ class AstBuilder(Transformer):
 
     def call_stmt(self, *children):
         name = str(children[1])
-        args = children[3] if len(children) > 2 else []
+        args = _arglist_of(children)
         return CallStmt(name=name, args=args)
 
     def assign_stmt(self, *children):
@@ -152,7 +152,7 @@ class AstBuilder(Transformer):
 
     def call_expr(self, *children):
         name = str(children[1])
-        args = children[3] if len(children) > 2 else []
+        args = _arglist_of(children)
         return CallExpr(name=name, args=args)
 
     def call_tail_expr(self, *children):
@@ -212,6 +212,11 @@ class AstBuilder(Transformer):
 
 def _nodes(children):
     return [c for c in children if isinstance(c, Node)]
+
+
+def _arglist_of(children):
+    """Найти список аргументов среди потомков вызова (может отсутствовать)."""
+    return next((c for c in children[2:] if isinstance(c, list)), [])
 
 
 def _fold_binary(args):

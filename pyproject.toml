@@ -8,7 +8,13 @@ version = "0.1.0-alpha"
 description = "Детский язык программирования на русском поверх Python"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { file = "LICENSE.md" }
+license = "MIT"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Software Development :: Compilers",
+    "Topic :: Education",
+]
 dependencies = [
     "lark-parser>=0.12.0",
 ]

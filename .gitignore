@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Виртуальное окружение
+.venv/
+venv/
+env/
+
+# Тесты и анализ
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Редакторы и IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Наследие старого каталога (заметки Obsidian)
+.obsidian/
+
+# Системное
+.DS_Store
+Thumbs.db
+
+# Логи и временные файлы
+*.log
+*.tmp

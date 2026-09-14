@@ -16,12 +16,15 @@ from .nodes import (
     Char,
     ChrCall,
     CodeCall,
+    EndsCall,
     FindCall,
     ForStmt,
     IfStmt,
     IndexGet,
     InputExpr,
+    JoinCall,
     LengthCall,
+    LowerCall,
     MemberGet,
     Null,
     Number,
@@ -30,13 +33,18 @@ from .nodes import (
     ProcDef,
     RandomCall,
     RepeatStmt,
+    ReplaceCall,
     ReturnStmt,
+    ReverseCall,
     RoundCall,
+    SplitCall,
     SqrtCall,
+    StartsCall,
     String,
     SubstrCall,
     UnaryNeg,
     UnaryNot,
+    UpperCall,
     Variable,
     WhileStmt,
 )
@@ -190,6 +198,22 @@ class Interpreter:
             return self._random(self.eval(node.arg))
         if isinstance(node, RoundCall):
             return self._round(self.eval(node.arg))
+        if isinstance(node, UpperCall):
+            return self._upper(self.eval(node.arg))
+        if isinstance(node, LowerCall):
+            return self._lower(self.eval(node.arg))
+        if isinstance(node, ReplaceCall):
+            return self._replace(self.eval(node.string), self.eval(node.old), self.eval(node.new))
+        if isinstance(node, SplitCall):
+            return self._split(self.eval(node.string), self.eval(node.separator))
+        if isinstance(node, JoinCall):
+            return self._join(self.eval(node.array), self.eval(node.separator))
+        if isinstance(node, StartsCall):
+            return self._starts(self.eval(node.string), self.eval(node.prefix))
+        if isinstance(node, EndsCall):
+            return self._ends(self.eval(node.string), self.eval(node.suffix))
+        if isinstance(node, ReverseCall):
+            return self._reverse(self.eval(node.arg))
         if isinstance(node, InputExpr):
             return self._read_input()
         if isinstance(node, CallExpr):
@@ -391,6 +415,46 @@ class Interpreter:
         if isinstance(x, (int, float)):
             return float(round(x))
         raise LuLangError("«округлить» ожидает число")
+
+    def _upper(self, s):
+        if isinstance(s, str):
+            return s.upper()
+        raise LuLangError("«вверх» работает только со строками")
+
+    def _lower(self, s):
+        if isinstance(s, str):
+            return s.lower()
+        raise LuLangError("«вниз» работает только со строками")
+
+    def _replace(self, s, old, new):
+        if isinstance(s, str) and isinstance(old, str) and isinstance(new, str):
+            return s.replace(old, new)
+        raise LuLangError("«заменить» работает только со строками")
+
+    def _split(self, s, sep):
+        if isinstance(s, str) and isinstance(sep, str):
+            return s.split(sep)
+        raise LuLangError("«разделить» работает только со строками")
+
+    def _join(self, arr, sep):
+        if isinstance(arr, list) and isinstance(sep, str):
+            return sep.join(str(self._format(x)) for x in arr)
+        raise LuLangError("«соединить» ожидает массив и строку-разделитель")
+
+    def _starts(self, s, prefix):
+        if isinstance(s, str) and isinstance(prefix, str):
+            return s.startswith(prefix)
+        raise LuLangError("«начинается» работает только со строками")
+
+    def _ends(self, s, suffix):
+        if isinstance(s, str) and isinstance(suffix, str):
+            return s.endswith(suffix)
+        raise LuLangError("«заканчивается» работает только со строками")
+
+    def _reverse(self, s):
+        if isinstance(s, str):
+            return s[::-1]
+        raise LuLangError("«перевернуть» работает только со строками")
 
     def _read_input(self):
         text = input().strip()

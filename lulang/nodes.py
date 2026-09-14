@@ -139,6 +139,52 @@ class RoundCall(Node):
 
 
 @dataclass
+class UpperCall(Node):
+    arg: Node
+
+
+@dataclass
+class LowerCall(Node):
+    arg: Node
+
+
+@dataclass
+class ReplaceCall(Node):
+    string: Node
+    old: Node
+    new: Node
+
+
+@dataclass
+class SplitCall(Node):
+    string: Node
+    separator: Node
+
+
+@dataclass
+class JoinCall(Node):
+    array: Node
+    separator: Node
+
+
+@dataclass
+class StartsCall(Node):
+    string: Node
+    prefix: Node
+
+
+@dataclass
+class EndsCall(Node):
+    string: Node
+    suffix: Node
+
+
+@dataclass
+class ReverseCall(Node):
+    arg: Node
+
+
+@dataclass
 class InputExpr(Node):
     pass
 
@@ -212,6 +258,8 @@ Expr = Union[
     UnaryNeg, UnaryNot, BinOp, IndexGet, MemberGet, LengthCall,
     CodeCall, ChrCall, FindCall, SubstrCall, ArrayAddCall,
     ArrayRemoveCall, SqrtCall, AbsCall, RandomCall, RoundCall,
+    UpperCall, LowerCall, ReplaceCall, SplitCall, JoinCall,
+    StartsCall, EndsCall, ReverseCall,
     InputExpr, CallExpr,
 ]
 Stmt = Union[

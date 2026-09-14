@@ -13,12 +13,15 @@ from .nodes import (
     Char,
     ChrCall,
     CodeCall,
+    EndsCall,
     FindCall,
     ForStmt,
     IfStmt,
     IndexGet,
     InputExpr,
+    JoinCall,
     LengthCall,
+    LowerCall,
     MemberGet,
     Node,
     Null,
@@ -28,13 +31,18 @@ from .nodes import (
     ProcDef,
     RandomCall,
     RepeatStmt,
+    ReplaceCall,
     ReturnStmt,
+    ReverseCall,
     RoundCall,
+    SplitCall,
     SqrtCall,
+    StartsCall,
     String,
     SubstrCall,
     UnaryNeg,
     UnaryNot,
+    UpperCall,
     Variable,
     WhileStmt,
 )
@@ -195,6 +203,30 @@ class AstBuilder(Transformer):
 
     def round_call(self, *children):
         return RoundCall(arg=children[2])
+
+    def upper_call(self, *children):
+        return UpperCall(arg=children[2])
+
+    def lower_call(self, *children):
+        return LowerCall(arg=children[2])
+
+    def replace_call(self, *children):
+        return ReplaceCall(string=children[2], old=children[4], new=children[6])
+
+    def split_call(self, *children):
+        return SplitCall(string=children[2], separator=children[4])
+
+    def join_call(self, *children):
+        return JoinCall(array=children[2], separator=children[4])
+
+    def starts_call(self, *children):
+        return StartsCall(string=children[2], prefix=children[4])
+
+    def ends_call(self, *children):
+        return EndsCall(string=children[2], suffix=children[4])
+
+    def reverse_call(self, *children):
+        return ReverseCall(arg=children[2])
 
     def call_expr(self, *children):
         name = str(children[1])

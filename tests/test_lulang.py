@@ -537,6 +537,51 @@ def test_round_down(capsys):
     assert out == "3\n"
 
 
+def test_upper(capsys):
+    out = run('печать(вверх("лу"))\n', capsys)
+    assert out == "ЛУ\n"
+
+
+def test_lower(capsys):
+    out = run('печать(вниз("ЛУ"))\n', capsys)
+    assert out == "лу\n"
+
+
+def test_replace(capsys):
+    out = run('печать(заменить("котик", "тик", "шка"))\n', capsys)
+    assert out == "кошка\n"
+
+
+def test_split(capsys):
+    out = run('печать(разделить("а,б,в", ","))\n', capsys)
+    assert out == "[а, б, в]\n"
+
+
+def test_join(capsys):
+    out = run('печать(соединить(["а", "б"], "-"))\n', capsys)
+    assert out == "а-б\n"
+
+
+def test_starts_true(capsys):
+    out = run('печать(начинается("привет", "при"))\n', capsys)
+    assert out == "истина\n"
+
+
+def test_starts_false(capsys):
+    out = run('печать(начинается("привет", "про"))\n', capsys)
+    assert out == "ложь\n"
+
+
+def test_ends_true(capsys):
+    out = run('печать(заканчивается("привет", "вет"))\n', capsys)
+    assert out == "истина\n"
+
+
+def test_reverse(capsys):
+    out = run('печать(перевернуть("лу"))\n', capsys)
+    assert out == "ул\n"
+
+
 # --- ввод ----------------------------------------------------------------
 
 

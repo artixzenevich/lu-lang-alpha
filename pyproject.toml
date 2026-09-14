@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lu-lang"
-version = "0.3.0-alpha"
+version = "0.3.1-alpha"
 description = "Детский язык программирования на русском поверх Python"
 readme = "README.md"
 requires-python = ">=3.10"

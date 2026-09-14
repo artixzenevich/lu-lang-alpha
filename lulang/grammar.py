@@ -21,7 +21,8 @@ _KEYWORDS = (
     "печать|запомнить|ввод|если|то|иначе|конец|и|или|не|для|от|до|"
     "пока|повтори|раз|процедура|выполнить|вернуть|истина|ложь|ничего|"
     "длина|код|символ|найти|подстрока|добавить|удалить|корень|модуль|"
-    "случ|округлить"
+    "случ|округлить|вверх|вниз|заменить|разделить|соединить|начинается|"
+    "заканчивается|перевернуть"
 )
 
 GRAMMAR = r"""
@@ -113,6 +114,14 @@ comparison: additive (comparison_op additive)?
       | ABS "(" expr ")" -> abs_call
       | RANDOM "(" expr ")" -> random_call
       | ROUND "(" expr ")" -> round_call
+      | UPPER "(" expr ")" -> upper_call
+      | LOWER "(" expr ")" -> lower_call
+      | REPLACE "(" expr "," expr "," expr ")" -> replace_call
+      | SPLIT "(" expr "," expr ")" -> split_call
+      | JOIN "(" expr "," expr ")" -> join_call
+      | STARTS "(" expr "," expr ")" -> starts_call
+      | ENDS "(" expr "," expr ")" -> ends_call
+      | REVERSE "(" expr ")" -> reverse_call
       | INPUT "(" ")" -> input
      | "(" expr ")"
 
@@ -158,6 +167,14 @@ SQRT: "корень"
 ABS: "модуль"
 RANDOM: "случ"
 ROUND: "округлить"
+UPPER: "вверх"
+LOWER: "вниз"
+REPLACE: "заменить"
+SPLIT: "разделить"
+JOIN: "соединить"
+STARTS: "начинается"
+ENDS: "заканчивается"
+REVERSE: "перевернуть"
 
 BINOP: "+" | "-" | "*" | "/" | "=" | "!=" | "<" | "<=" | ">" | ">=" | AND | OR
 

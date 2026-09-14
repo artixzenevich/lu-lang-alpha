@@ -1,7 +1,10 @@
 from lark import Token, Transformer, v_args
 
 from .nodes import (
+    AbsCall,
     Array,
+    ArrayAddCall,
+    ArrayRemoveCall,
     AssignStmt,
     BinOp,
     Bool,
@@ -10,6 +13,7 @@ from .nodes import (
     Char,
     ChrCall,
     CodeCall,
+    FindCall,
     ForStmt,
     IfStmt,
     IndexGet,
@@ -22,9 +26,13 @@ from .nodes import (
     Object,
     PrintStmt,
     ProcDef,
+    RandomCall,
     RepeatStmt,
     ReturnStmt,
+    RoundCall,
+    SqrtCall,
     String,
+    SubstrCall,
     UnaryNeg,
     UnaryNot,
     Variable,
@@ -118,6 +126,12 @@ class AstBuilder(Transformer):
     def return_stmt(self, *children):
         return ReturnStmt(expr=children[1] if len(children) > 1 else None)
 
+    def array_add_stmt(self, *children):
+        return ArrayAddCall(array=children[2], value=children[4])
+
+    def array_remove_stmt(self, *children):
+        return ArrayRemoveCall(array=children[2], index=children[4])
+
     # --- выражения --------------------------------------------------------
 
     def or_expr(self, *args):
@@ -157,6 +171,30 @@ class AstBuilder(Transformer):
 
     def chr_call(self, *children):
         return ChrCall(arg=children[2])
+
+    def find_call(self, *children):
+        return FindCall(haystack=children[2], needle=children[4])
+
+    def substr_call(self, *children):
+        return SubstrCall(string=children[2], start=children[4], length=children[6])
+
+    def array_add_call(self, *children):
+        return ArrayAddCall(array=children[2], value=children[4])
+
+    def array_remove_call(self, *children):
+        return ArrayRemoveCall(array=children[2], index=children[4])
+
+    def sqrt_call(self, *children):
+        return SqrtCall(arg=children[2])
+
+    def abs_call(self, *children):
+        return AbsCall(arg=children[2])
+
+    def random_call(self, *children):
+        return RandomCall(arg=children[2])
+
+    def round_call(self, *children):
+        return RoundCall(arg=children[2])
 
     def call_expr(self, *children):
         name = str(children[1])

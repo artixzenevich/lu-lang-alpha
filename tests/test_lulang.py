@@ -462,6 +462,81 @@ def test_chr_bool_error():
         Interpreter().run(build_ast(parse("печать(символ(истина))")))
 
 
+# --- строки, массивы, математика -------------------------------------------
+
+
+def test_string_indexing(capsys):
+    out = run('запомнить s = "привет"\nпечать(s[0])\nпечать(s[2])\n', capsys)
+    assert out == "п\nи\n"
+
+
+def test_string_find(capsys):
+    out = run('печать(найти("привет", "и"))\n', capsys)
+    assert out == "2\n"
+
+
+def test_string_find_not_found(capsys):
+    out = run('печать(найти("привет", "z"))\n', capsys)
+    assert out == "-1\n"
+
+
+def test_substr(capsys):
+    out = run('печать(подстрока("привет", 0, 3))\n', capsys)
+    assert out == "при\n"
+
+
+def test_array_add(capsys):
+    out = run(
+        'запомнить a = [1, 2]\n'
+        'добавить(a, 3)\n'
+        'печать(a)\n',
+        capsys,
+    )
+    assert out == "[1, 2, 3]\n"
+
+
+def test_array_remove(capsys):
+    out = run(
+        'запомнить a = [1, 2, 3]\n'
+        'удалить(a, 1)\n'
+        'печать(a)\n',
+        capsys,
+    )
+    assert out == "[1, 3]\n"
+
+
+def test_sqrt(capsys):
+    out = run("печать(корень(9))\n", capsys)
+    assert out == "3\n"
+
+
+def test_abs_negative(capsys):
+    out = run("печать(модуль(-5))\n", capsys)
+    assert out == "5\n"
+
+
+def test_abs_positive(capsys):
+    out = run("печать(модуль(5))\n", capsys)
+    assert out == "5\n"
+
+
+def test_random_range(capsys):
+    for _ in range(100):
+        out = run("печать(случ(10))\n", capsys)
+        val = int(out.strip())
+        assert 0 <= val < 10, f"случайное число {val} вне диапазона 0..9"
+
+
+def test_round_up(capsys):
+    out = run("печать(округлить(3.7))\n", capsys)
+    assert out == "4\n"
+
+
+def test_round_down(capsys):
+    out = run("печать(округлить(3.2))\n", capsys)
+    assert out == "3\n"
+
+
 # --- ввод ----------------------------------------------------------------
 
 

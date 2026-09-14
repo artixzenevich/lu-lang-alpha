@@ -94,6 +94,51 @@ class ChrCall(Node):
 
 
 @dataclass
+class FindCall(Node):
+    haystack: Node
+    needle: Node
+
+
+@dataclass
+class SubstrCall(Node):
+    string: Node
+    start: Node
+    length: Node
+
+
+@dataclass
+class ArrayAddCall(Node):
+    array: Node
+    value: Node
+
+
+@dataclass
+class ArrayRemoveCall(Node):
+    array: Node
+    index: Node
+
+
+@dataclass
+class SqrtCall(Node):
+    arg: Node
+
+
+@dataclass
+class AbsCall(Node):
+    arg: Node
+
+
+@dataclass
+class RandomCall(Node):
+    arg: Node
+
+
+@dataclass
+class RoundCall(Node):
+    arg: Node
+
+
+@dataclass
 class InputExpr(Node):
     pass
 
@@ -165,7 +210,9 @@ Program = list[Node]
 Expr = Union[
     Number, String, Char, Bool, Null, Variable, Array, Object,
     UnaryNeg, UnaryNot, BinOp, IndexGet, MemberGet, LengthCall,
-    CodeCall, ChrCall, InputExpr, CallExpr,
+    CodeCall, ChrCall, FindCall, SubstrCall, ArrayAddCall,
+    ArrayRemoveCall, SqrtCall, AbsCall, RandomCall, RoundCall,
+    InputExpr, CallExpr,
 ]
 Stmt = Union[
     PrintStmt, CallStmt, AssignStmt, IfStmt, WhileStmt, ForStmt,

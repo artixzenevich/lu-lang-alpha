@@ -20,7 +20,8 @@ from lark import Lark, Token, Tree
 _KEYWORDS = (
     "печать|запомнить|ввод|если|то|иначе|конец|и|или|не|для|от|до|"
     "пока|повтори|раз|процедура|выполнить|вернуть|истина|ложь|ничего|"
-    "длина|код|символ"
+    "длина|код|символ|найти|подстрока|добавить|удалить|корень|модуль|"
+    "случ|округлить"
 )
 
 GRAMMAR = r"""
@@ -35,6 +36,8 @@ start: stmt*
      | repeat_stmt
      | proc_def
      | return_stmt
+     | array_add_stmt
+     | array_remove_stmt
      | empty_stmt
 
 print_stmt: PRINT "(" expr ")"
@@ -54,6 +57,8 @@ proc_def: PROC NAME "(" params? ")" stmts END
 params: NAME ("," NAME)*
 return_stmt: RETURN expr?
 empty_stmt: NEWLINE
+array_add_stmt: ARRAY_ADD "(" expr "," expr ")"
+array_remove_stmt: ARRAY_REMOVE "(" expr "," expr ")"
 
 stmts: stmt*
 
@@ -100,6 +105,14 @@ comparison: additive (comparison_op additive)?
 | LENGTH "(" expr ")" -> length_call
       | CODE "(" expr ")" -> code_call
       | CHR "(" expr ")" -> chr_call
+      | FIND "(" expr "," expr ")" -> find_call
+      | SUBSTR "(" expr "," expr "," expr ")" -> substr_call
+      | ARRAY_ADD "(" expr "," expr ")" -> array_add_call
+      | ARRAY_REMOVE "(" expr "," expr ")" -> array_remove_call
+      | SQRT "(" expr ")" -> sqrt_call
+      | ABS "(" expr ")" -> abs_call
+      | RANDOM "(" expr ")" -> random_call
+      | ROUND "(" expr ")" -> round_call
       | INPUT "(" ")" -> input
      | "(" expr ")"
 
@@ -137,6 +150,14 @@ NULL: "ничего"
 LENGTH: "длина"
 CODE: "код"
 CHR: "символ"
+FIND: "найти"
+SUBSTR: "подстрока"
+ARRAY_ADD: "добавить"
+ARRAY_REMOVE: "удалить"
+SQRT: "корень"
+ABS: "модуль"
+RANDOM: "случ"
+ROUND: "округлить"
 
 BINOP: "+" | "-" | "*" | "/" | "=" | "!=" | "<" | "<=" | ">" | ">=" | AND | OR
 

@@ -1,7 +1,13 @@
 """Интерпретатор lu-lang: выполняет программу из узлов AST."""
 
+import math
+import random
+
 from .nodes import (
+    AbsCall,
     Array,
+    ArrayAddCall,
+    ArrayRemoveCall,
     AssignStmt,
     BinOp,
     Bool,
@@ -10,6 +16,7 @@ from .nodes import (
     Char,
     ChrCall,
     CodeCall,
+    FindCall,
     ForStmt,
     IfStmt,
     IndexGet,
@@ -21,9 +28,13 @@ from .nodes import (
     Object,
     PrintStmt,
     ProcDef,
+    RandomCall,
     RepeatStmt,
     ReturnStmt,
+    RoundCall,
+    SqrtCall,
     String,
+    SubstrCall,
     UnaryNeg,
     UnaryNot,
     Variable,
@@ -71,6 +82,10 @@ class Interpreter:
             self._assign(stmt.target, self.eval(stmt.expr), stmt.is_declaration)
         elif isinstance(stmt, CallStmt):
             self._call(stmt.name, stmt.args)
+        elif isinstance(stmt, ArrayAddCall):
+            self._array_add(self.eval(stmt.array), self.eval(stmt.value))
+        elif isinstance(stmt, ArrayRemoveCall):
+            self._array_remove(self.eval(stmt.array), self.eval(stmt.index))
         elif isinstance(stmt, IfStmt):
             self._if(stmt)
         elif isinstance(stmt, WhileStmt):
@@ -159,6 +174,22 @@ class Interpreter:
             return self._code(self.eval(node.arg))
         if isinstance(node, ChrCall):
             return self._chr(self.eval(node.arg))
+        if isinstance(node, FindCall):
+            return self._find(self.eval(node.haystack), self.eval(node.needle))
+        if isinstance(node, SubstrCall):
+            return self._substr(self.eval(node.string), self.eval(node.start), self.eval(node.length))
+        if isinstance(node, ArrayAddCall):
+            return self._array_add(self.eval(node.array), self.eval(node.value))
+        if isinstance(node, ArrayRemoveCall):
+            return self._array_remove(self.eval(node.array), self.eval(node.index))
+        if isinstance(node, SqrtCall):
+            return self._sqrt(self.eval(node.arg))
+        if isinstance(node, AbsCall):
+            return self._abs(self.eval(node.arg))
+        if isinstance(node, RandomCall):
+            return self._random(self.eval(node.arg))
+        if isinstance(node, RoundCall):
+            return self._round(self.eval(node.arg))
         if isinstance(node, InputExpr):
             return self._read_input()
         if isinstance(node, CallExpr):
@@ -261,11 +292,11 @@ class Interpreter:
         self.frames[0][name] = value
 
     def _index_get(self, obj, index):
-        if not isinstance(obj, list):
-            raise LuLangError("Квадратные скобки работают только с массивами")
+        if not isinstance(obj, (list, str)):
+            raise LuLangError("Квадратные скобки работают только с массивами и строками")
         i = self._as_int(index)
         if not 0 <= i < len(obj):
-            raise LuLangError(f"В массиве нет элемента с номером {i}")
+            raise LuLangError(f"В массиве или строке нет элемента с номером {i}")
         return obj[i]
 
     def _index_set(self, obj, index, value):
@@ -302,6 +333,64 @@ class Interpreter:
                 return chr(code)
             raise LuLangError(f"Нет символа с кодом {code}")
         raise LuLangError("«символ» ожидает число — код символа в Юникоде")
+
+    def _find(self, haystack, needle):
+        if isinstance(haystack, str) and isinstance(needle, str):
+            return float(haystack.find(needle))
+        raise LuLangError("«найти» работает только со строками")
+
+    def _substr(self, s, start, length):
+        if not isinstance(s, str):
+            raise LuLangError("«подстрока» работает только со строками")
+        i = self._as_int(start)
+        n = self._as_int(length)
+        if i < 0 or i >= len(s):
+            return ""
+        return s[i:i + n]
+
+    def _array_add(self, arr, val):
+        if not isinstance(arr, list):
+            raise LuLangError("«добавить» работает только с массивами")
+        arr.append(val)
+        return arr
+
+    def _array_remove(self, arr, index):
+        if not isinstance(arr, list):
+            raise LuLangError("«удалить» работает только с массивами")
+        i = self._as_int(index)
+        if not 0 <= i < len(arr):
+            raise LuLangError(f"В массиве нет элемента с номером {i}")
+        del arr[i]
+        return arr
+
+    def _sqrt(self, x):
+        if isinstance(x, bool):
+            raise LuLangError("«корень» ожидает число")
+        if isinstance(x, (int, float)):
+            if x < 0:
+                raise LuLangError("Нельзя взять корень из отрицательного числа")
+            return math.sqrt(x)
+        raise LuLangError("«корень» ожидает число")
+
+    def _abs(self, x):
+        if isinstance(x, (int, float)):
+            return float(abs(x))
+        raise LuLangError("«модуль» ожидает число")
+
+    def _random(self, x):
+        if isinstance(x, bool):
+            raise LuLangError("«случ» ожидает число")
+        if isinstance(x, (int, float)):
+            n = int(x)
+            if n <= 0:
+                raise LuLangError("«случ» ожидает положительное число")
+            return float(random.randrange(n))
+        raise LuLangError("«случ» ожидает число")
+
+    def _round(self, x):
+        if isinstance(x, (int, float)):
+            return float(round(x))
+        raise LuLangError("«округлить» ожидает число")
 
     def _read_input(self):
         text = input().strip()

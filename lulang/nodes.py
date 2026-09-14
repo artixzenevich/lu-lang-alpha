@@ -109,6 +109,7 @@ class CallStmt(Node):
 class AssignStmt(Node):
     target: Union[str, IndexGet, MemberGet]
     expr: Node
+    is_declaration: bool = False
 
 
 @dataclass

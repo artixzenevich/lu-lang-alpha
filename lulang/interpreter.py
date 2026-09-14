@@ -66,7 +66,7 @@ class Interpreter:
         if isinstance(stmt, PrintStmt):
             print(self._format(self.eval(stmt.expr)))
         elif isinstance(stmt, AssignStmt):
-            self._assign(stmt.target, self.eval(stmt.expr))
+            self._assign(stmt.target, self.eval(stmt.expr), stmt.is_declaration)
         elif isinstance(stmt, CallStmt):
             self._call(stmt.name, stmt.args)
         elif isinstance(stmt, IfStmt):
@@ -107,7 +107,7 @@ class Interpreter:
             return
         count = 0
         for value in range(start, end + 1):
-            self._set_var(stmt.var, float(value))
+            self._set_var(stmt.var, float(value), is_declaration=True)
             self._run_block(stmt.body)
             count += 1
             if count > _LOOP_LIMIT:
@@ -200,9 +200,9 @@ class Interpreter:
             raise LuLangError("На ноль делить нельзя!")
         raise LuLangError(f"Не знаю такую операцию: {op}")
 
-    def _assign(self, target, value):
+    def _assign(self, target, value, is_declaration=False):
         if isinstance(target, str):
-            self._set_var(target, value)
+            self._set_var(target, value, is_declaration)
         elif isinstance(target, MemberGet):
             obj = self.eval(target.obj)
             if not isinstance(obj, dict):
@@ -244,7 +244,10 @@ class Interpreter:
                 return frame[name]
         raise LuLangError(f"Я ещё не знаю, что такое «{name}»")
 
-    def _set_var(self, name, value):
+    def _set_var(self, name, value, is_declaration=False):
+        if is_declaration:
+            self.frames[-1][name] = value
+            return
         for frame in reversed(self.frames):
             if name in frame:
                 frame[name] = value

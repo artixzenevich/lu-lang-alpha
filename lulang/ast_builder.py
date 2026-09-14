@@ -42,7 +42,7 @@ class AstBuilder(Transformer):
 
     # --- инструкции -------------------------------------------------------
 
-    def print_stmt(self, _keyword, _colon, expr):
+    def print_stmt(self, _keyword, _open, expr, _close):
         return PrintStmt(expr=expr)
 
     def call_stmt(self, *children):
@@ -52,7 +52,7 @@ class AstBuilder(Transformer):
 
     def assign_stmt(self, *children):
         if len(children) == 4:  # запомнить имя = выражение
-            return AssignStmt(target=str(children[1]), expr=children[3])
+            return AssignStmt(target=str(children[1]), expr=children[3], is_declaration=True)
         return AssignStmt(target=children[0], expr=children[2])
 
     def lvalue(self, *children):

@@ -19,7 +19,8 @@ from lark import Lark, Token, Tree
 # отрицательного просмотра вперёд в NAME.
 _KEYWORDS = (
     "печать|запомнить|ввод|если|то|иначе|конец|и|или|не|для|от|до|"
-    "пока|повтори|раз|процедура|выполнить|вернуть|истина|ложь|ничего|длина"
+    "пока|повтори|раз|процедура|выполнить|вернуть|истина|ложь|ничего|"
+    "длина|код|символ"
 )
 
 GRAMMAR = r"""
@@ -96,8 +97,10 @@ comparison: additive (comparison_op additive)?
      | NAME             -> variable
      | array_literal
      | object_literal
-     | LENGTH "(" expr ")" -> length_call
-     | INPUT "(" ")" -> input
+| LENGTH "(" expr ")" -> length_call
+      | CODE "(" expr ")" -> code_call
+      | CHR "(" expr ")" -> chr_call
+      | INPUT "(" ")" -> input
      | "(" expr ")"
 
 call_expr: CALL NAME "(" arglist? ")"
@@ -132,6 +135,8 @@ TRUE: "истина"
 FALSE: "ложь"
 NULL: "ничего"
 LENGTH: "длина"
+CODE: "код"
+CHR: "символ"
 
 BINOP: "+" | "-" | "*" | "/" | "=" | "!=" | "<" | "<=" | ">" | ">=" | AND | OR
 

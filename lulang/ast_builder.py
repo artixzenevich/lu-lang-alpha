@@ -8,6 +8,8 @@ from .nodes import (
     CallExpr,
     CallStmt,
     Char,
+    ChrCall,
+    CodeCall,
     ForStmt,
     IfStmt,
     IndexGet,
@@ -149,6 +151,12 @@ class AstBuilder(Transformer):
 
     def length_call(self, *children):
         return LengthCall(arg=children[2])
+
+    def code_call(self, *children):
+        return CodeCall(arg=children[2])
+
+    def chr_call(self, *children):
+        return ChrCall(arg=children[2])
 
     def call_expr(self, *children):
         name = str(children[1])

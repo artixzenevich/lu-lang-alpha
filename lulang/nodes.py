@@ -84,6 +84,16 @@ class LengthCall(Node):
 
 
 @dataclass
+class CodeCall(Node):
+    arg: Node
+
+
+@dataclass
+class ChrCall(Node):
+    arg: Node
+
+
+@dataclass
 class InputExpr(Node):
     pass
 
@@ -155,7 +165,7 @@ Program = list[Node]
 Expr = Union[
     Number, String, Char, Bool, Null, Variable, Array, Object,
     UnaryNeg, UnaryNot, BinOp, IndexGet, MemberGet, LengthCall,
-    InputExpr, CallExpr,
+    CodeCall, ChrCall, InputExpr, CallExpr,
 ]
 Stmt = Union[
     PrintStmt, CallStmt, AssignStmt, IfStmt, WhileStmt, ForStmt,

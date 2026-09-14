@@ -424,6 +424,44 @@ def test_loop_var_inside_procedure(capsys):
     assert out == "1\n2\n3\n999\n"
 
 
+# --- код и символ ----------------------------------------------------------
+
+
+def test_code_of_char(capsys):
+    out = run("печать(код('А'))\n", capsys)
+    assert out == "1040\n"
+
+
+def test_code_in_expression(capsys):
+    out = run("печать(код('Б') + 1)\n", capsys)
+    assert out == "1042\n"
+
+
+def test_chr_of_code(capsys):
+    out = run("печать(символ(1040))\n", capsys)
+    assert out == "А\n"
+
+
+def test_chr_chain(capsys):
+    out = run("печать(символ(код('В') + 1))\n", capsys)
+    assert out == "Г\n"
+
+
+def test_code_on_string_error():
+    with pytest.raises(LuLangError):
+        Interpreter().run(build_ast(parse('печать(код("привет"))')))
+
+
+def test_chr_invalid_code():
+    with pytest.raises(LuLangError):
+        Interpreter().run(build_ast(parse("печать(символ(-1))")))
+
+
+def test_chr_bool_error():
+    with pytest.raises(LuLangError):
+        Interpreter().run(build_ast(parse("печать(символ(истина))")))
+
+
 # --- ввод ----------------------------------------------------------------
 
 

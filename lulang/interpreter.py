@@ -8,6 +8,8 @@ from .nodes import (
     CallExpr,
     CallStmt,
     Char,
+    ChrCall,
+    CodeCall,
     ForStmt,
     IfStmt,
     IndexGet,
@@ -153,6 +155,10 @@ class Interpreter:
             return self._member_get(self.eval(node.obj), node.name)
         if isinstance(node, LengthCall):
             return self._length(self.eval(node.arg))
+        if isinstance(node, CodeCall):
+            return self._code(self.eval(node.arg))
+        if isinstance(node, ChrCall):
+            return self._chr(self.eval(node.arg))
         if isinstance(node, InputExpr):
             return self._read_input()
         if isinstance(node, CallExpr):
@@ -281,6 +287,21 @@ class Interpreter:
         if isinstance(obj, (list, dict, str)):
             return float(len(obj))
         raise LuLangError("«длина» работает только с массивами, строками и объектами")
+
+    def _code(self, obj):
+        if isinstance(obj, str) and len(obj) == 1:
+            return float(ord(obj))
+        raise LuLangError("«код» работает только с одним символом")
+
+    def _chr(self, obj):
+        if isinstance(obj, bool):
+            raise LuLangError("«символ» ожидает число, а не булево значение")
+        if isinstance(obj, (int, float)):
+            code = int(obj)
+            if 0 <= code <= 0x10FFFF:
+                return chr(code)
+            raise LuLangError(f"Нет символа с кодом {code}")
+        raise LuLangError("«символ» ожидает число — код символа в Юникоде")
 
     def _read_input(self):
         text = input().strip()

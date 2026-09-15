@@ -8,11 +8,13 @@ from .nodes import (
     AssignStmt,
     BinOp,
     Bool,
+    BreakStmt,
     CallExpr,
     CallStmt,
     Char,
     ChrCall,
     CodeCall,
+    ContinueStmt,
     EndsCall,
     FindCall,
     ForStmt,
@@ -133,6 +135,12 @@ class AstBuilder(Transformer):
 
     def return_stmt(self, *children):
         return ReturnStmt(expr=children[1] if len(children) > 1 else None)
+
+    def break_stmt(self, *children):
+        return BreakStmt()
+
+    def continue_stmt(self, *children):
+        return ContinueStmt()
 
     def array_add_stmt(self, *children):
         return ArrayAddCall(array=children[2], value=children[4])

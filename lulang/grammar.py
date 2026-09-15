@@ -22,7 +22,7 @@ _KEYWORDS = (
     "пока|повтори|раз|процедура|выполнить|вернуть|истина|ложь|ничего|"
     "длина|код|символ|найти|подстрока|добавить|удалить|корень|модуль|"
     "случ|округлить|вверх|вниз|заменить|разделить|соединить|начинается|"
-    "заканчивается|перевернуть"
+    "заканчивается|перевернуть|прервать|продолжить"
 )
 
 GRAMMAR = r"""
@@ -37,6 +37,8 @@ start: stmt*
      | repeat_stmt
      | proc_def
      | return_stmt
+     | break_stmt
+     | continue_stmt
      | array_add_stmt
      | array_remove_stmt
      | empty_stmt
@@ -57,6 +59,8 @@ repeat_stmt: REPEAT expr TIMES stmts END
 proc_def: PROC NAME "(" params? ")" stmts END
 params: NAME ("," NAME)*
 return_stmt: RETURN expr?
+break_stmt: BREAK
+continue_stmt: CONTINUE
 empty_stmt: NEWLINE
 array_add_stmt: ARRAY_ADD "(" expr "," expr ")"
 array_remove_stmt: ARRAY_REMOVE "(" expr "," expr ")"
@@ -153,6 +157,8 @@ REPEAT: "повтори"
 TIMES: "раз"
 PROC: "процедура"
 RETURN: "вернуть"
+BREAK: "прервать"
+CONTINUE: "продолжить"
 TRUE: "истина"
 FALSE: "ложь"
 NULL: "ничего"
@@ -264,6 +270,8 @@ _STMT_TYPES = frozenset(
         "repeat_stmt",
         "proc_def",
         "return_stmt",
+        "break_stmt",
+        "continue_stmt",
     }
 )
 

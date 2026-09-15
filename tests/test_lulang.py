@@ -222,6 +222,110 @@ def test_infinite_loop_guard():
         Interpreter().run(build_ast(parse("пока истина\n    печать(1)\nконец")))
 
 
+def test_break_while(capsys):
+    out = run(
+        "запомнить x = 3\n"
+        "пока x > 0\n"
+        "    печать(x)\n"
+        "    прервать\n"
+        "    печать(\"не_попадём\")\n"
+        "    x = x - 1\n"
+        "конец\n",
+        capsys,
+    )
+    assert out == "3\n"
+
+
+def test_continue_while(capsys):
+    out = run(
+        "запомнить x = 3\n"
+        "пока x > 0\n"
+        "    x = x - 1\n"
+        "    если x = 2 то\n"
+        "        продолжить\n"
+        "    конец\n"
+        "    печать(x)\n"
+        "конец\n",
+        capsys,
+    )
+    assert out == "1\n0\n"
+
+
+def test_break_for(capsys):
+    out = run(
+        "для i от 1 до 5\n"
+        "    если i = 3 то\n"
+        "        прервать\n"
+        "    конец\n"
+        "    печать(i)\n"
+        "конец\n",
+        capsys,
+    )
+    assert out == "1\n2\n"
+
+
+def test_continue_for(capsys):
+    out = run(
+        "для i от 1 до 5\n"
+        "    если i = 3 то\n"
+        "        продолжить\n"
+        "    конец\n"
+        "    печать(i)\n"
+        "конец\n",
+        capsys,
+    )
+    assert out == "1\n2\n4\n5\n"
+
+
+def test_break_repeat(capsys):
+    out = run(
+        "повтори 10 раз\n"
+        "    прервать\n"
+        "    печать(\"не_попадём\")\n"
+        "конец\n"
+        'печать("ок")\n',
+        capsys,
+    )
+    assert out == "ок\n"
+
+
+def test_continue_repeat(capsys):
+    out = run(
+        "запомнить x = 0\n"
+        "повтори 5 раз\n"
+        "    x = x + 1\n"
+        "    если x = 3 то\n"
+        "        продолжить\n"
+        "    конец\n"
+        "    печать(x)\n"
+        "конец\n",
+        capsys,
+    )
+    assert out == "1\n2\n4\n5\n"
+
+
+def test_break_outside_loop_raises():
+    with pytest.raises(LuLangError, match="прервать"):
+        Interpreter().run(build_ast(parse("прервать")))
+
+
+def test_continue_outside_loop_raises():
+    with pytest.raises(LuLangError, match="продолжить"):
+        Interpreter().run(build_ast(parse("продолжить")))
+
+
+def test_break_nested_loops(capsys):
+    out = run(
+        "для i от 1 до 3\n"
+        "    прервать\n"
+        "    печать(i)\n"
+        "конец\n"
+        'печать("после_цикла")\n',
+        capsys,
+    )
+    assert out == "после_цикла\n"
+
+
 # --- процедуры ------------------------------------------------------------
 
 

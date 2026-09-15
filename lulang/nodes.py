@@ -251,6 +251,16 @@ class ReturnStmt(Node):
     expr: Node | None
 
 
+@dataclass
+class BreakStmt(Node):
+    pass
+
+
+@dataclass
+class ContinueStmt(Node):
+    pass
+
+
 Program = list[Node]
 
 Expr = Union[
@@ -264,5 +274,5 @@ Expr = Union[
 ]
 Stmt = Union[
     PrintStmt, CallStmt, AssignStmt, IfStmt, WhileStmt, ForStmt,
-    RepeatStmt, ProcDef, ReturnStmt,
+    RepeatStmt, ProcDef, ReturnStmt, BreakStmt, ContinueStmt,
 ]

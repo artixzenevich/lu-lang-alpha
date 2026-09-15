@@ -11,11 +11,13 @@ from .nodes import (
     AssignStmt,
     BinOp,
     Bool,
+    BreakStmt,
     CallExpr,
     CallStmt,
     Char,
     ChrCall,
     CodeCall,
+    ContinueStmt,
     EndsCall,
     FindCall,
     ForStmt,
@@ -65,6 +67,14 @@ class _Return(Exception):
         self.value = value
 
 
+class _Break(Exception):
+    """Сигнал: выход из цикла по команде «прервать»."""
+
+
+class _Continue(Exception):
+    """Сигнал: переход к следующей итерации цикла по команде «продолжить»."""
+
+
 class Interpreter:
     """Выполняет программу слева направо, сверху вниз."""
 
@@ -80,6 +90,10 @@ class Interpreter:
                 self.execute(stmt)
         except _Return:
             raise LuLangError("«вернуть» можно использовать только внутри процедуры")
+        except _Break:
+            raise LuLangError("«прервать» можно использовать только внутри цикла")
+        except _Continue:
+            raise LuLangError("«продолжить» можно использовать только внутри цикла")
 
     # --- инструкции -------------------------------------------------------
 
@@ -107,6 +121,10 @@ class Interpreter:
         elif isinstance(stmt, ReturnStmt):
             value = Null() if stmt.expr is None else self.eval(stmt.expr)
             raise _Return(value)
+        elif isinstance(stmt, BreakStmt):
+            raise _Break()
+        elif isinstance(stmt, ContinueStmt):
+            raise _Continue()
         else:  # pragma: no cover
             raise LuLangError(f"Не знаю, что делать с такой командой: {stmt!r}")
 
@@ -120,7 +138,12 @@ class Interpreter:
     def _while(self, stmt):
         count = 0
         while self._truthy(self.eval(stmt.cond)):
-            self._run_block(stmt.body)
+            try:
+                self._run_block(stmt.body)
+            except _Break:
+                break
+            except _Continue:
+                continue
             count += 1
             if count > _LOOP_LIMIT:
                 raise LuLangError("Похоже, цикл «пока» не может остановиться")
@@ -133,7 +156,12 @@ class Interpreter:
         count = 0
         for value in range(start, end + 1):
             self._set_var(stmt.var, float(value), is_declaration=True)
-            self._run_block(stmt.body)
+            try:
+                self._run_block(stmt.body)
+            except _Break:
+                break
+            except _Continue:
+                continue
             count += 1
             if count > _LOOP_LIMIT:
                 raise LuLangError("Похоже, цикл «для» не может остановиться")
@@ -143,7 +171,12 @@ class Interpreter:
         if total > _LOOP_LIMIT:
             raise LuLangError("Столько повторений не сделать — похоже, тут ошибка")
         for _ in range(total):
-            self._run_block(stmt.body)
+            try:
+                self._run_block(stmt.body)
+            except _Break:
+                break
+            except _Continue:
+                continue
 
     # --- выражения --------------------------------------------------------
 

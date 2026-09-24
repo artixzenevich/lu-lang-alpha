@@ -22,7 +22,7 @@ _KEYWORDS = (
     "пока|повтори|раз|процедура|выполнить|вернуть|истина|ложь|ничего|"
     "длина|код|символ|найти|подстрока|добавить|удалить|корень|модуль|"
     "случ|округлить|вверх|вниз|заменить|разделить|соединить|начинается|"
-    "заканчивается|перевернуть|прервать|продолжить|подключить|как"
+    "заканчивается|перевернуть|прервать|продолжить|подключить|как|из|взять|всё"
 )
 
 GRAMMAR = r"""
@@ -42,6 +42,7 @@ start: stmt*
      | array_add_stmt
      | array_remove_stmt
      | import_stmt
+     | from_stmt
      | empty_stmt
 
 print_stmt: PRINT "(" expr ")"
@@ -66,6 +67,9 @@ empty_stmt: NEWLINE
 array_add_stmt: ARRAY_ADD "(" expr "," expr ")"
 array_remove_stmt: ARRAY_REMOVE "(" expr "," expr ")"
 import_stmt: IMPORT NAME (AS NAME)?
+from_stmt: IZ NAME TAKE imported_names
+imported_names: ALL | imported_name ("," imported_name)*
+imported_name: NAME (AS NAME)?
 
 stmts: stmt*
 
@@ -144,6 +148,9 @@ PRINT: "печать"
 LET: "запомнить"
 IMPORT: "подключить"
 AS: "как"
+IZ: "из"
+TAKE: "взять"
+ALL: "всё"
 INPUT: "ввод"
 CALL: "выполнить"
 IF: "если"
@@ -277,6 +284,7 @@ _STMT_TYPES = frozenset(
         "break_stmt",
         "continue_stmt",
         "import_stmt",
+        "from_stmt",
     }
 )
 

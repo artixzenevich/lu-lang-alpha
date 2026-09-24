@@ -3,6 +3,7 @@
 Запуск:
     lu program.lu            — выполнить программу
     lu program.lu --show-ast — заодно показать дерево разбора
+    lu                       — интерактивный режим (REPL)
 """
 
 import argparse
@@ -24,8 +25,9 @@ def build_parser():
     )
     parser.add_argument(
         "file",
+        nargs="?",
         metavar="ФАЙЛ",
-        help="путь к программе на lu-lang (расширение .lu)",
+        help="путь к программе на lu-lang (расширение .lu); без файла — интерактивный режим",
     )
     parser.add_argument(
         "--show-ast",
@@ -42,6 +44,12 @@ def build_parser():
 
 def main(argv=None) -> int:
     args = build_parser().parse_args(argv)
+
+    if args.file is None:
+        from .repl import repl
+
+        repl()
+        return 0
 
     path = Path(args.file)
     try:

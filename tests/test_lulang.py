@@ -59,7 +59,17 @@ def test_reassign_variable(capsys):
 def test_keywords_are_reserved():
     from lark import LarkError
 
-    for keyword in ("печать", "запомнить", "если", "конец", "подключить", "как"):
+    for keyword in (
+        "печать",
+        "запомнить",
+        "если",
+        "конец",
+        "подключить",
+        "как",
+        "из",
+        "взять",
+        "всё",
+    ):
         with pytest.raises(LarkError):
             parse(f"запомнить {keyword} = 1")
 
@@ -836,3 +846,254 @@ def test_module_not_found():
 def test_module_not_imported_call_raises():
     with pytest.raises(LuLangError, match="Не подключён модуль"):
         Interpreter().run(build_ast(parse("печать(выполнить математика.квадрат(5))")))
+
+
+# --- импорт имён: из ... взять ... ----------------------------------------
+
+
+def test_from_import_name(tmp_path, capsys):
+    (tmp_path / "геометрия.lu").write_text(
+        "процедура периметр_квадрата(сторона)\n    вернуть 4 * сторона\nконец\n",
+        encoding="utf-8",
+    )
+    out = run_in(
+        tmp_path,
+        "из геометрия взять периметр_квадрата\n"
+        "печать(выполнить периметр_квадрата(5))\n",
+        capsys,
+    )
+    assert out == "20\n"
+
+
+def test_from_import_uses_module_globals(tmp_path, capsys):
+    (tmp_path / "м.lu").write_text(
+        "запомнить пи = 3\n"
+        "процедура тройной(x)\n    вернуть пи * x\nконец\n",
+        encoding="utf-8",
+    )
+    out = run_in(
+        tmp_path,
+        "из м взять тройной\n"
+        "запомнить пи = 999\n"
+        "печать(выполнить тройной(2))\n",
+        capsys,
+    )
+    assert out == "6\n"  # берётся глобал модуля, а не программы
+
+
+def test_from_import_calls_sibling(tmp_path, capsys):
+    (tmp_path / "м.lu").write_text(
+        "процедура двойной(x)\n    вернуть x + x\nконец\n"
+        "процедура учетверённый(x)\n    вернуть (выполнить двойной(x + x))\nконец\n",
+        encoding="utf-8",
+    )
+    out = run_in(
+        tmp_path,
+        "из м взять учетверённый\nпечать(выполнить учетверённый(3))\n",
+        capsys,
+    )
+    assert out == "12\n"
+
+
+def test_from_import_with_alias(tmp_path, capsys):
+    (tmp_path / "м.lu").write_text(
+        "процедура привет()\n    вернуть \"Лу\"\nконец\n",
+        encoding="utf-8",
+    )
+    out = run_in(
+        tmp_path,
+        "из м взять привет как п\nпечать(выполнить п())\n",
+        capsys,
+    )
+    assert out == "Лу\n"
+    with pytest.raises(LuLangError, match="Не знаю такую процедуру"):
+        run_in(tmp_path, "из м взять привет как п\nпечать(выполнить привет())\n", capsys)
+
+
+def test_from_import_several_names(tmp_path, capsys):
+    (tmp_path / "м.lu").write_text(
+        "процедура а(x)\n    вернуть x + 1\nконец\n"
+        "процедура б(x)\n    вернуть x + 2\nконец\n",
+        encoding="utf-8",
+    )
+    out = run_in(
+        tmp_path,
+        "из м взять а, б как в\n"
+        "печать(выполнить а(1))\n"
+        "печать(выполнить в(1))\n",
+        capsys,
+    )
+    assert out == "2\n3\n"
+
+
+def test_from_import_all(tmp_path, capsys):
+    (tmp_path / "м.lu").write_text(
+        "процедура а(x)\n    вернуть x + 1\nконец\n"
+        "процедура б(x)\n    вернуть x + 2\nконец\n",
+        encoding="utf-8",
+    )
+    out = run_in(
+        tmp_path,
+        "из м взять всё\nпечать(выполнить а(1))\nпечать(выполнить б(1))\n",
+        capsys,
+    )
+    assert out == "2\n3\n"
+
+
+def test_from_import_python_plugin(tmp_path, capsys):
+    (tmp_path / "маг.py").write_text(
+        "def удвой(x):\n    return x * 2\n",
+        encoding="utf-8",
+    )
+    out = run_in(
+        tmp_path,
+        "из маг взять удвой\nпечать(выполнить удвой(21))\n",
+        capsys,
+    )
+    assert out == "42\n"
+
+
+def test_from_import_unknown_name(tmp_path):
+    (tmp_path / "м.lu").write_text(
+        "процедура а(x)\n    вернуть x\nконец\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(LuLangError, match="нет процедуры"):
+        Interpreter(module_paths=[tmp_path]).run(build_ast(parse("из м взять несуществующая\n")))
+
+
+def test_from_import_unknown_module(tmp_path):
+    with pytest.raises(LuLangError, match="Не нашёл модуль"):
+        Interpreter(module_paths=[tmp_path]).run(build_ast(parse("из несуществующий взять а\n")))
+
+
+def test_from_import_not_imported_name():
+    with pytest.raises(LuLangError, match="Не знаю такую процедуру"):
+        Interpreter().run(build_ast(parse("печать(выполнить площадь_круга(1))")))
+
+
+def test_from_import_local_proc_wins(tmp_path, capsys):
+    (tmp_path / "м.lu").write_text(
+        "процедура тест()\n    вернуть \"из модуля\"\nконец\n",
+        encoding="utf-8",
+    )
+    out = run_in(
+        tmp_path,
+        "процедура тест()\n    вернуть \"своя\"\nконец\n"
+        "из м взять тест\n"
+        "печать(выполнить тест())\n",
+        capsys,
+    )
+    assert out == "своя\n"
+
+
+def test_from_import_module_not_reexecuted(tmp_path, capsys):
+    (tmp_path / "м.lu").write_text(
+        'печать("тело!")\nпроцедура а(x)\n    вернуть x\nконец\n',
+        encoding="utf-8",
+    )
+    out = run_in(
+        tmp_path,
+        "подключить м\nиз м взять а\nпечать(выполнить а(1))\n",
+        capsys,
+    )
+    assert out == "тело!\n1\n"
+
+
+# --- интерактивный режим (REPL) ------------------------------------------
+
+
+def test_repl_expression_result(capsys):
+    from lulang.repl import _try_run
+
+    interp = Interpreter()
+    status, err = _try_run("2 + 2\n", interp)
+    assert status == "ok"
+    assert err is None
+    assert capsys.readouterr().out == "4\n"
+
+
+def test_repl_statement_no_output(capsys):
+    from lulang.repl import _try_run
+
+    interp = Interpreter()
+    status, err = _try_run("запомнить x = 5\n", interp)
+    assert status == "ok"
+    assert capsys.readouterr().out == ""
+
+
+def test_repl_incomplete_block():
+    from lulang.repl import _try_run
+
+    interp = Interpreter()
+    status, err = _try_run("процедура квадрат(число)\n    вернуть число * число\n", interp)
+    assert status == "incomplete"
+
+
+def test_repl_persistent_state(capsys):
+    from lulang.repl import _try_run
+
+    interp = Interpreter()
+    _try_run("запомнить x = 5\n", interp)
+    status, err = _try_run("x * 2\n", interp)
+    assert status == "ok"
+    assert capsys.readouterr().out == "10\n"
+
+
+def test_repl_runtime_error_keeps_session(capsys):
+    from lulang.repl import _try_run
+
+    interp = Interpreter()
+    status, err = _try_run("печать(1 / 0)\n", interp)
+    assert status == "error"
+    assert "делить" in str(err)
+    status, err = _try_run('печать("ок")\n', interp)
+    assert status == "ok"
+
+
+def test_repl_exit_via_command(monkeypatch, capsys):
+    from lulang.repl import repl
+
+    lines = iter(["печать(1 + 1)", "выход()"])
+    monkeypatch.setattr("builtins.input", lambda prompt: next(lines))
+    repl()
+    assert "2" in capsys.readouterr().out
+
+
+def test_repl_exit_via_eof(monkeypatch, capsys):
+    from lulang.repl import repl
+
+    def no_input(prompt):
+        raise EOFError
+
+    monkeypatch.setattr("builtins.input", no_input)
+    repl()  # не должно бросить исключение
+    assert "интерактивный режим" in capsys.readouterr().out
+
+
+def test_repl_help(monkeypatch, capsys):
+    from lulang.repl import repl
+
+    lines = iter(["помощь()", "выход()"])
+    monkeypatch.setattr("builtins.input", lambda prompt: next(lines))
+    repl()
+    assert "Специальные команды" in capsys.readouterr().out
+
+
+def test_repl_multiline_procedure(monkeypatch, capsys):
+    from lulang.repl import repl
+
+    lines = iter(
+        [
+            "процедура квадрат(число)",
+            "    вернуть число * число",
+            "конец",
+            "выполнить квадрат(4)",
+            "выход()",
+        ]
+    )
+    monkeypatch.setattr("builtins.input", lambda prompt: next(lines))
+    repl()
+    # квадрат(4) — инструкция без печати, но процедура должна зарегистрироваться
+    out = capsys.readouterr().out
+    assert "интерактивный режим" in out

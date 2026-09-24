@@ -29,6 +29,7 @@ from .nodes import (
     EndsCall,
     FindCall,
     ForStmt,
+    FromStmt,
     IfStmt,
     IndexGet,
     InputExpr,
@@ -114,6 +115,8 @@ class Interpreter:
         self.procs: dict[str, ProcDef] = {}
         # Загруженные модули: имя -> _Module. Общий реестр для под-интерпретаторов.
         self.modules: dict[str, _Module] = modules if modules is not None else {}
+        # Импортированные имена: имя процедуры -> (модуль, процедура).
+        self.imported: dict[str, tuple[str, str]] = {}
         # Каталоги, где искать модули (кроме пользовательских и встроенных).
         self.module_paths: list[Path] = list(module_paths or [])
 
@@ -160,6 +163,8 @@ class Interpreter:
             raise _Continue()
         elif isinstance(stmt, ImportStmt):
             self._import_module(stmt.name, stmt.alias)
+        elif isinstance(stmt, FromStmt):
+            self._import_names(stmt.module, stmt.names)
         else:  # pragma: no cover
             raise LuLangError(f"Не знаю, что делать с такой командой: {stmt!r}")
 
@@ -344,9 +349,19 @@ class Interpreter:
         if "." in name:
             return self._call_module(name, args)
         proc = self.procs.get(name)
-        if proc is None:
+        if proc is not None:
+            return self._call_proc(proc, [self.eval(arg) for arg in args])
+        return self._call_imported(name, args)
+
+    def _call_imported(self, name, args):
+        """Вызвать процедуру, импортированную через «из ... взять ...»."""
+        entry = self.imported.get(name)
+        if entry is None:
             raise LuLangError(f"Не знаю такую процедуру: «{name}»")
-        return self._call_proc(proc, [self.eval(arg) for arg in args])
+        mod_name, proc_name = entry
+        module = self.modules[mod_name]
+        values = [self.eval(arg) for arg in args]
+        return self._invoke_module_proc(module, proc_name, values)
 
     def _call_proc(self, proc, values):
         """Вызвать процедуру уже вычисленными аргументами в этом интерпретаторе."""
@@ -372,19 +387,23 @@ class Interpreter:
         if module is None:
             raise LuLangError(f"Не подключён модуль «{mod_name}»")
         values = [self.eval(arg) for arg in args]
+        return self._invoke_module_proc(module, proc_name, values)
+
+    def _invoke_module_proc(self, module, proc_name, values):
+        """Вызвать процедуру модуля (lu или python) уже вычисленными аргументами."""
         if module.kind == "python":
             fn = module.funcs.get(proc_name)
             if fn is None:
-                raise LuLangError(f"В модуле «{mod_name}» нет процедуры «{proc_name}»")
+                raise LuLangError(f"В модуле «{module.name}» нет процедуры «{proc_name}»")
             try:
                 return fn(*values)
             except LuLangError:
                 raise
             except Exception as exc:
-                raise LuLangError(f"Модуль «{mod_name}» ошибся: {exc}")
+                raise LuLangError(f"Модуль «{module.name}» ошибся: {exc}")
         proc = module.interp.procs.get(proc_name)
         if proc is None:
-            raise LuLangError(f"В модуле «{mod_name}» нет процедуры «{proc_name}»")
+            raise LuLangError(f"В модуле «{module.name}» нет процедуры «{proc_name}»")
         return module.interp._call_proc(proc, values)
 
     # --- модули -----------------------------------------------------------
@@ -401,6 +420,24 @@ class Interpreter:
         if alias and alias != name:
             self.modules[alias] = module
         return module
+
+    def _import_names(self, module_name, names):
+        """«из модуль взять имена» — зарегистрировать процедуры для прямого вызова."""
+        module = self._import_module(module_name)
+        if names == "*":
+            if module.kind == "lu":
+                items = [(n, None) for n in module.interp.procs]
+            else:
+                items = [(n, None) for n in module.funcs]
+        else:
+            items = names
+        for proc_name, alias in items:
+            if module.kind == "lu":
+                if proc_name not in module.interp.procs:
+                    raise LuLangError(f"В модуле «{module_name}» нет процедуры «{proc_name}»")
+            elif proc_name not in module.funcs:
+                raise LuLangError(f"В модуле «{module_name}» нет процедуры «{proc_name}»")
+            self.imported[alias or proc_name] = (module_name, proc_name)
 
     def _load_module(self, name):
         paths = self.module_paths + _env_paths() + [_USER_LIB, _BUILTIN_LIB]

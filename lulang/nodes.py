@@ -267,6 +267,12 @@ class ImportStmt(Node):
     alias: str | None = None
 
 
+@dataclass
+class FromStmt(Node):
+    module: str
+    names: Union[str, list]  # "*" — взять всё, иначе [(имя, алиас|None), ...]
+
+
 Program = list[Node]
 
 Expr = Union[
@@ -281,4 +287,5 @@ Expr = Union[
 Stmt = Union[
     PrintStmt, CallStmt, AssignStmt, IfStmt, WhileStmt, ForStmt,
     RepeatStmt, ProcDef, ReturnStmt, BreakStmt, ContinueStmt, ImportStmt,
+    FromStmt,
 ]

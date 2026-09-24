@@ -18,6 +18,7 @@ from .nodes import (
     EndsCall,
     FindCall,
     ForStmt,
+    FromStmt,
     IfStmt,
     IndexGet,
     InputExpr,
@@ -75,6 +76,19 @@ class AstBuilder(Transformer):
         name = str(children[1])
         alias = str(children[3]) if len(children) == 4 else None
         return ImportStmt(name=name, alias=alias)
+
+    def from_stmt(self, *children):
+        return FromStmt(module=str(children[1]), names=children[3])
+
+    def imported_names(self, *children):
+        if len(children) == 1 and isinstance(children[0], Token) and children[0].type == "ALL":
+            return "*"
+        return [c for c in children if isinstance(c, tuple)]
+
+    def imported_name(self, *children):
+        name = str(children[0])
+        alias = str(children[2]) if len(children) == 3 else None
+        return (name, alias)
 
     def assign_stmt(self, *children):
         if len(children) == 4:  # запомнить имя = выражение

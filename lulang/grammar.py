@@ -22,7 +22,7 @@ _KEYWORDS = (
     "пока|повтори|раз|процедура|выполнить|вернуть|истина|ложь|ничего|"
     "длина|код|символ|найти|подстрока|добавить|удалить|корень|модуль|"
     "случ|округлить|вверх|вниз|заменить|разделить|соединить|начинается|"
-    "заканчивается|перевернуть|прервать|продолжить"
+    "заканчивается|перевернуть|прервать|продолжить|подключить|как"
 )
 
 GRAMMAR = r"""
@@ -41,10 +41,11 @@ start: stmt*
      | continue_stmt
      | array_add_stmt
      | array_remove_stmt
+     | import_stmt
      | empty_stmt
 
 print_stmt: PRINT "(" expr ")"
-call_stmt: CALL NAME "(" arglist? ")"
+call_stmt: CALL NAME ("." NAME)? "(" arglist? ")"
 assign_stmt: LET NAME "=" expr
            | lvalue "=" expr
 lvalue: NAME | NAME "." NAME | NAME "[" expr "]"
@@ -64,6 +65,7 @@ continue_stmt: CONTINUE
 empty_stmt: NEWLINE
 array_add_stmt: ARRAY_ADD "(" expr "," expr ")"
 array_remove_stmt: ARRAY_REMOVE "(" expr "," expr ")"
+import_stmt: IMPORT NAME (AS NAME)?
 
 stmts: stmt*
 
@@ -129,7 +131,7 @@ comparison: additive (comparison_op additive)?
       | INPUT "(" ")" -> input
      | "(" expr ")"
 
-call_expr: CALL NAME "(" arglist? ")"
+call_expr: CALL NAME ("." NAME)? "(" arglist? ")"
 
 array_literal: "[" (expr ("," expr)*)? "]"
 object_literal: "{" (NAME ":" expr ("," NAME ":" expr)*)? "}"
@@ -140,6 +142,8 @@ arglist: expr ("," expr)*
 
 PRINT: "печать"
 LET: "запомнить"
+IMPORT: "подключить"
+AS: "как"
 INPUT: "ввод"
 CALL: "выполнить"
 IF: "если"
@@ -272,6 +276,7 @@ _STMT_TYPES = frozenset(
         "return_stmt",
         "break_stmt",
         "continue_stmt",
+        "import_stmt",
     }
 )
 

@@ -59,7 +59,7 @@ def test_reassign_variable(capsys):
 def test_keywords_are_reserved():
     from lark import LarkError
 
-    for keyword in ("печать", "запомнить", "если", "конец"):
+    for keyword in ("печать", "запомнить", "если", "конец", "подключить", "как"):
         with pytest.raises(LarkError):
             parse(f"запомнить {keyword} = 1")
 
@@ -699,3 +699,140 @@ def test_input_string(monkeypatch, capsys):
     monkeypatch.setattr("builtins.input", lambda: "Вася")
     out = run("запомнить имя = ввод()\nпечать(имя)\n", capsys)
     assert out == "Вася\n"
+
+
+# --- модули ---------------------------------------------------------------
+
+
+def run_in(tmp_path, source: str, capsys) -> str:
+    """Выполнить исходник, ища модули в tmp_path."""
+    program = build_ast(parse(source))
+    Interpreter(module_paths=[tmp_path]).run(program)
+    return capsys.readouterr().out
+
+
+def test_import_lu_module(tmp_path, capsys):
+    (tmp_path / "математика.lu").write_text(
+        "процедура квадрат(число)\n"
+        "    вернуть число * число\n"
+        "конец\n",
+        encoding="utf-8",
+    )
+    out = run_in(
+        tmp_path,
+        "подключить математика\n"
+        "запомнить x = выполнить математика.квадрат(5)\n"
+        "печать(x)\n",
+        capsys,
+    )
+    assert out == "25\n"
+
+
+def test_import_lu_module_calls_sibling(tmp_path, capsys):
+    (tmp_path / "м.lu").write_text(
+        "процедура двойной(x)\n    вернуть x + x\nконец\n"
+        "процедура учетверённый(x)\n    вернуть выполнить двойной(x + x)\nконец\n",
+        encoding="utf-8",
+    )
+    out = run_in(
+        tmp_path,
+        "подключить м\nпечать(выполнить м.учетверённый(3))\n",
+        capsys,
+    )
+    assert out == "12\n"
+
+
+def test_import_with_alias(tmp_path, capsys):
+    (tmp_path / "м.lu").write_text(
+        "процедура привет()\n    вернуть \"Лу\"\nконец\n",
+        encoding="utf-8",
+    )
+    out = run_in(
+        tmp_path,
+        "подключить м как мат\nпечать(выполнить мат.привет())\n",
+        capsys,
+    )
+    assert out == "Лу\n"
+    # настоящее имя тоже доступно — импорт не выполняется второй раз
+    assert "Я ещё не знаю" not in out
+
+
+def test_python_plugin_module(tmp_path, capsys):
+    (tmp_path / "маг.py").write_text(
+        "def удвой(x):\n    return x * 2\n\ndef _секрет(x):\n    return 0\n",
+        encoding="utf-8",
+    )
+    out = run_in(
+        tmp_path,
+        "подключить маг\nпечать(выполнить маг.удвой(21))\n",
+        capsys,
+    )
+    assert out == "42\n"
+    with pytest.raises(LuLangError):
+        run_in(tmp_path, "подключить маг\nпечать(выполнить маг._секрет(1))\n", capsys)
+
+
+def test_python_plugin_with_all(tmp_path, capsys):
+    (tmp_path / "м.py").write_text(
+        "def а(x):\n    return 1\n"
+        "def б(x):\n    return 2\n"
+        "__все__ = [\"б\"]\n",
+        encoding="utf-8",
+    )
+    out = run_in(
+        tmp_path,
+        "подключить м\nпечать(выполнить м.б(0))\n",
+        capsys,
+    )
+    assert out == "2\n"
+    with pytest.raises(LuLangError):
+        run_in(tmp_path, "подключить м\nпечать(выполнить м.а(0))\n", capsys)
+
+
+def test_module_imported_once(tmp_path, capsys):
+    (tmp_path / "счёт.lu").write_text(
+        'печать("тело!")\nпроцедура значение()\n    вернуть 7\nконец\n',
+        encoding="utf-8",
+    )
+    out = run_in(
+        tmp_path,
+        "подключить счёт\nподключить счёт\nпечать(выполнить счёт.значение())\n",
+        capsys,
+    )
+    assert out == "тело!\n7\n"
+
+
+def test_module_globals_isolated(tmp_path, capsys):
+    (tmp_path / "изол.lu").write_text(
+        "запомнить секрет = 10\n"
+        "процедура получить()\n    вернуть секрет\nконец\n",
+        encoding="utf-8",
+    )
+    out = run_in(
+        tmp_path,
+        "запомнить секрет = 5\n"
+        "подключить изол\n"
+        "печать(выполнить изол.получить())\n"
+        "печать(секрет)\n",
+        capsys,
+    )
+    assert out == "10\n5\n"
+
+
+def test_builtin_lib_module(tmp_path, capsys):
+    out = run_in(
+        tmp_path,
+        "подключить математика\nпечать(выполнить математика.квадрат(4))\n",
+        capsys,
+    )
+    assert out == "16\n"
+
+
+def test_module_not_found():
+    with pytest.raises(LuLangError, match="Не нашёл модуль"):
+        Interpreter().run(build_ast(parse("подключить несуществующий")))
+
+
+def test_module_not_imported_call_raises():
+    with pytest.raises(LuLangError, match="Не подключён модуль"):
+        Interpreter().run(build_ast(parse("печать(выполнить математика.квадрат(5))")))

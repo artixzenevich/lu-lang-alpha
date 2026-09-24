@@ -21,6 +21,7 @@ from .nodes import (
     IfStmt,
     IndexGet,
     InputExpr,
+    ImportStmt,
     JoinCall,
     LengthCall,
     LowerCall,
@@ -66,9 +67,14 @@ class AstBuilder(Transformer):
         return PrintStmt(expr=expr)
 
     def call_stmt(self, *children):
-        name = str(children[1])
+        name = _call_name(children)
         args = _arglist_of(children)
         return CallStmt(name=name, args=args)
+
+    def import_stmt(self, *children):
+        name = str(children[1])
+        alias = str(children[3]) if len(children) == 4 else None
+        return ImportStmt(name=name, alias=alias)
 
     def assign_stmt(self, *children):
         if len(children) == 4:  # запомнить имя = выражение
@@ -237,7 +243,7 @@ class AstBuilder(Transformer):
         return ReverseCall(arg=children[2])
 
     def call_expr(self, *children):
-        name = str(children[1])
+        name = _call_name(children)
         args = _arglist_of(children)
         return CallExpr(name=name, args=args)
 
@@ -298,6 +304,16 @@ class AstBuilder(Transformer):
 
 def _nodes(children):
     return [c for c in children if isinstance(c, Node)]
+
+
+def _call_name(children):
+    """Склеить имя вызова: «имя» или «модуль.процедура»."""
+    names = [
+        str(c)
+        for c in children[1:]
+        if isinstance(c, Token) and c.type == "NAME"
+    ]
+    return ".".join(names[:2])
 
 
 def _arglist_of(children):

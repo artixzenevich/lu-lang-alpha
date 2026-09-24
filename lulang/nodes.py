@@ -261,6 +261,12 @@ class ContinueStmt(Node):
     pass
 
 
+@dataclass
+class ImportStmt(Node):
+    name: str
+    alias: str | None = None
+
+
 Program = list[Node]
 
 Expr = Union[
@@ -274,5 +280,5 @@ Expr = Union[
 ]
 Stmt = Union[
     PrintStmt, CallStmt, AssignStmt, IfStmt, WhileStmt, ForStmt,
-    RepeatStmt, ProcDef, ReturnStmt, BreakStmt, ContinueStmt,
+    RepeatStmt, ProcDef, ReturnStmt, BreakStmt, ContinueStmt, ImportStmt,
 ]

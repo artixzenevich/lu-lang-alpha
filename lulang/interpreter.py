@@ -1,8 +1,16 @@
 """Интерпретатор lu-lang: выполняет программу из узлов AST."""
 
+import importlib.util
 import math
+import os
 import random
+import sys
+from pathlib import Path
 
+from lark import LarkError
+
+from .ast_builder import build_ast
+from .grammar import parse
 from .nodes import (
     AbsCall,
     Array,
@@ -24,6 +32,7 @@ from .nodes import (
     IfStmt,
     IndexGet,
     InputExpr,
+    ImportStmt,
     JoinCall,
     LengthCall,
     LowerCall,
@@ -52,7 +61,27 @@ from .nodes import (
 )
 
 _LOOP_LIMIT = 1_000_000
-_RECURSION_LIMIT = 200
+_RECURSION_LIMIT = 120
+
+_USER_LIB = Path.home() / ".lu-lang" / "библиотеки"
+_BUILTIN_LIB = Path(__file__).resolve().parent / "библиотеки"
+
+
+def _env_paths():
+    raw = os.environ.get("LU_PATH", "")
+    return [Path(p) for p in raw.split(os.pathsep) if p]
+
+
+class _Module:
+    """Загруженный модуль: на lu-lang или плагин на Python."""
+
+    __slots__ = ("name", "kind", "interp", "funcs")
+
+    def __init__(self, name, kind, interp=None, funcs=None):
+        self.name = name
+        self.kind = kind  # "lu" | "python"
+        self.interp = interp  # Interpreter для lu-модулей
+        self.funcs = funcs  # dict имя -> функция для python-модулей
 
 
 class LuLangError(Exception):
@@ -78,11 +107,15 @@ class _Continue(Exception):
 class Interpreter:
     """Выполняет программу слева направо, сверху вниз."""
 
-    def __init__(self):
+    def __init__(self, module_paths=None, modules=None):
         # Стек областей видимости: снизу глобальная, сверху — локальные.
         self.frames = [{}]
         # Процедуры: имя -> ProcDef.
         self.procs: dict[str, ProcDef] = {}
+        # Загруженные модули: имя -> _Module. Общий реестр для под-интерпретаторов.
+        self.modules: dict[str, _Module] = modules if modules is not None else {}
+        # Каталоги, где искать модули (кроме пользовательских и встроенных).
+        self.module_paths: list[Path] = list(module_paths or [])
 
     def run(self, program):
         try:
@@ -125,6 +158,8 @@ class Interpreter:
             raise _Break()
         elif isinstance(stmt, ContinueStmt):
             raise _Continue()
+        elif isinstance(stmt, ImportStmt):
+            self._import_module(stmt.name, stmt.alias)
         else:  # pragma: no cover
             raise LuLangError(f"Не знаю, что делать с такой командой: {stmt!r}")
 
@@ -306,16 +341,21 @@ class Interpreter:
             self._index_set(self.eval(target.obj), self.eval(target.index), value)
 
     def _call(self, name, args):
+        if "." in name:
+            return self._call_module(name, args)
         proc = self.procs.get(name)
         if proc is None:
             raise LuLangError(f"Не знаю такую процедуру: «{name}»")
-        if len(args) != len(proc.params):
+        return self._call_proc(proc, [self.eval(arg) for arg in args])
+
+    def _call_proc(self, proc, values):
+        """Вызвать процедуру уже вычисленными аргументами в этом интерпретаторе."""
+        if len(values) != len(proc.params):
             raise LuLangError(
-                f"Процедуре «{name}» нужно {len(proc.params)} аргументов, а дали {len(args)}"
+                f"Процедуре «{proc.name}» нужно {len(proc.params)} аргументов, а дали {len(values)}"
             )
         if len(self.frames) >= _RECURSION_LIMIT:
             raise LuLangError("Слишком много вложенных вызовов — возможно, бесконечная рекурсия")
-        values = [self.eval(arg) for arg in args]
         frame = dict(zip(proc.params, values))
         self.frames.append(frame)
         try:
@@ -325,6 +365,83 @@ class Interpreter:
         finally:
             self.frames.pop()
         return None
+
+    def _call_module(self, name, args):
+        mod_name, _, proc_name = name.partition(".")
+        module = self.modules.get(mod_name)
+        if module is None:
+            raise LuLangError(f"Не подключён модуль «{mod_name}»")
+        values = [self.eval(arg) for arg in args]
+        if module.kind == "python":
+            fn = module.funcs.get(proc_name)
+            if fn is None:
+                raise LuLangError(f"В модуле «{mod_name}» нет процедуры «{proc_name}»")
+            try:
+                return fn(*values)
+            except LuLangError:
+                raise
+            except Exception as exc:
+                raise LuLangError(f"Модуль «{mod_name}» ошибся: {exc}")
+        proc = module.interp.procs.get(proc_name)
+        if proc is None:
+            raise LuLangError(f"В модуле «{mod_name}» нет процедуры «{proc_name}»")
+        return module.interp._call_proc(proc, values)
+
+    # --- модули -----------------------------------------------------------
+
+    def _import_module(self, name, alias=None):
+        """Подключить модуль: найти файл, выполнить и запомнить в реестре."""
+        if name in self.modules:
+            module = self.modules[name]
+        elif alias in self.modules:
+            module = self.modules[alias]
+        else:
+            module = self._load_module(name)
+            self.modules[name] = module
+        if alias and alias != name:
+            self.modules[alias] = module
+        return module
+
+    def _load_module(self, name):
+        paths = self.module_paths + _env_paths() + [_USER_LIB, _BUILTIN_LIB]
+        for base in paths:
+            lu_file = base / f"{name}.lu"
+            if lu_file.is_file():
+                return self._load_lu_module(name, lu_file)
+            py_file = base / f"{name}.py"
+            if py_file.is_file():
+                return self._load_python_module(name, py_file)
+        raise LuLangError(f"Не нашёл модуль «{name}»")
+
+    def _load_lu_module(self, name, path):
+        try:
+            source = path.read_text(encoding="utf-8")
+            program = build_ast(parse(source))
+        except (OSError, LarkError) as exc:
+            raise LuLangError(f"Не получилось прочитать модуль «{name}»: {exc}")
+        sub = Interpreter(
+            module_paths=self.module_paths + [path.parent],
+            modules=self.modules,
+        )
+        try:
+            sub.run(program)
+        except LuLangError as exc:
+            raise LuLangError(f"В модуле «{name}»: {exc}")
+        return _Module(name=name, kind="lu", interp=sub)
+
+    def _load_python_module(self, name, path):
+        try:
+            spec = importlib.util.spec_from_file_location(name, path)
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[name] = module
+            spec.loader.exec_module(module)
+        except Exception as exc:
+            raise LuLangError(f"Не получилось загрузить модуль «{name}»: {exc}")
+        names = getattr(module, "__все__", None) or getattr(module, "__all__", None)
+        if names is None:
+            names = [n for n in dir(module) if not n.startswith("_")]
+        funcs = {n: getattr(module, n) for n in names if callable(getattr(module, n))}
+        return _Module(name=name, kind="python", funcs=funcs)
 
     # --- вспомогательное --------------------------------------------------
 

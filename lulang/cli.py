@@ -67,7 +67,7 @@ def main(argv=None) -> int:
         return 1
 
     try:
-        Interpreter().run(program)
+        Interpreter(module_paths=[path.parent]).run(program)
     except LuLangError as exc:
         print(f"Ой! {exc}", file=sys.stderr)
         return 1

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lu-lang"
-version = "0.3.2-alpha"
+version = "0.4.0-alpha"
 description = "Детский язык программирования на русском поверх Python"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -24,6 +24,9 @@ lu = "lulang.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["lulang*"]
+
+[tool.setuptools.package-data]
+lulang = ["библиотеки/*.lu", "библиотеки/*.py"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

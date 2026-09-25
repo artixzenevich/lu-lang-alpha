@@ -75,7 +75,11 @@ _LOOP_LIMIT = 1_000_000
 _RECURSION_LIMIT = 120
 
 _USER_LIB = Path.home() / ".lu-lang" / "библиотеки"
-_BUILTIN_LIB = Path(__file__).resolve().parent / "библиотеки"
+if getattr(sys, "frozen", False):  # собрано в бинарник (PyInstaller)
+    _BUNDLE_DIR = Path(getattr(sys, "_MEIPASS", Path(sys.executable).parent))
+    _BUILTIN_LIB = _BUNDLE_DIR / "lulang" / "библиотеки"
+else:
+    _BUILTIN_LIB = Path(__file__).resolve().parent / "библиотеки"
 
 
 def _env_paths():

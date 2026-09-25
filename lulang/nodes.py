@@ -185,6 +185,33 @@ class ReverseCall(Node):
 
 
 @dataclass
+class FileReadCall(Node):
+    arg: Node
+
+
+@dataclass
+class FileWriteCall(Node):
+    path: Node
+    text: Node
+
+
+@dataclass
+class FileAppendCall(Node):
+    path: Node
+    text: Node
+
+
+@dataclass
+class FileExistsCall(Node):
+    arg: Node
+
+
+@dataclass
+class FileDeleteCall(Node):
+    arg: Node
+
+
+@dataclass
 class InputExpr(Node):
     pass
 
@@ -281,7 +308,8 @@ Expr = Union[
     CodeCall, ChrCall, FindCall, SubstrCall, ArrayAddCall,
     ArrayRemoveCall, SqrtCall, AbsCall, RandomCall, RoundCall,
     UpperCall, LowerCall, ReplaceCall, SplitCall, JoinCall,
-    StartsCall, EndsCall, ReverseCall,
+    StartsCall, EndsCall, ReverseCall, FileReadCall, FileWriteCall,
+    FileAppendCall, FileExistsCall, FileDeleteCall,
     InputExpr, CallExpr,
 ]
 Stmt = Union[

@@ -16,6 +16,11 @@ from .nodes import (
     CodeCall,
     ContinueStmt,
     EndsCall,
+    FileAppendCall,
+    FileDeleteCall,
+    FileExistsCall,
+    FileReadCall,
+    FileWriteCall,
     FindCall,
     ForStmt,
     FromStmt,
@@ -168,6 +173,21 @@ class AstBuilder(Transformer):
     def array_remove_stmt(self, *children):
         return ArrayRemoveCall(array=children[2], index=children[4])
 
+    def file_read_stmt(self, *children):
+        return FileReadCall(arg=children[2])
+
+    def file_write_stmt(self, *children):
+        return FileWriteCall(path=children[2], text=children[4])
+
+    def file_append_stmt(self, *children):
+        return FileAppendCall(path=children[2], text=children[4])
+
+    def file_exists_stmt(self, *children):
+        return FileExistsCall(arg=children[2])
+
+    def file_delete_stmt(self, *children):
+        return FileDeleteCall(arg=children[2])
+
     # --- выражения --------------------------------------------------------
 
     def or_expr(self, *args):
@@ -255,6 +275,21 @@ class AstBuilder(Transformer):
 
     def reverse_call(self, *children):
         return ReverseCall(arg=children[2])
+
+    def file_read_call(self, *children):
+        return FileReadCall(arg=children[2])
+
+    def file_write_call(self, *children):
+        return FileWriteCall(path=children[2], text=children[4])
+
+    def file_append_call(self, *children):
+        return FileAppendCall(path=children[2], text=children[4])
+
+    def file_exists_call(self, *children):
+        return FileExistsCall(arg=children[2])
+
+    def file_delete_call(self, *children):
+        return FileDeleteCall(arg=children[2])
 
     def call_expr(self, *children):
         name = _call_name(children)

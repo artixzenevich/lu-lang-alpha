@@ -22,7 +22,8 @@ _KEYWORDS = (
     "пока|повтори|раз|процедура|выполнить|вернуть|истина|ложь|ничего|"
     "длина|код|символ|найти|подстрока|добавить|удалить|корень|модуль|"
     "случ|округлить|вверх|вниз|заменить|разделить|соединить|начинается|"
-    "заканчивается|перевернуть|прервать|продолжить|подключить|как|из|взять|всё"
+    "заканчивается|перевернуть|прервать|продолжить|подключить|как|из|взять|всё|"
+    "файл_прочитать|файл_записать|файл_добавить|файл_существует|файл_удалить"
 )
 
 GRAMMAR = r"""
@@ -41,6 +42,11 @@ start: stmt*
      | continue_stmt
      | array_add_stmt
      | array_remove_stmt
+     | file_read_stmt
+     | file_write_stmt
+     | file_append_stmt
+     | file_exists_stmt
+     | file_delete_stmt
      | import_stmt
      | from_stmt
      | empty_stmt
@@ -50,6 +56,11 @@ call_stmt: CALL NAME ("." NAME)? "(" arglist? ")"
 assign_stmt: LET NAME "=" expr
            | lvalue "=" expr
 lvalue: NAME | NAME "." NAME | NAME "[" expr "]"
+file_read_stmt: FILE_READ "(" expr ")"
+file_write_stmt: FILE_WRITE "(" expr "," expr ")"
+file_append_stmt: FILE_APPEND "(" expr "," expr ")"
+file_exists_stmt: FILE_EXISTS "(" expr ")"
+file_delete_stmt: FILE_DELETE "(" expr ")"
 
 if_stmt: IF expr THEN stmts elif_part* else_part? END
 elif_part: ELSE IF expr THEN stmts
@@ -133,6 +144,11 @@ comparison: additive (comparison_op additive)?
       | ENDS "(" expr "," expr ")" -> ends_call
       | REVERSE "(" expr ")" -> reverse_call
       | INPUT "(" ")" -> input
+      | FILE_READ "(" expr ")" -> file_read_call
+      | FILE_WRITE "(" expr "," expr ")" -> file_write_call
+      | FILE_APPEND "(" expr "," expr ")" -> file_append_call
+      | FILE_EXISTS "(" expr ")" -> file_exists_call
+      | FILE_DELETE "(" expr ")" -> file_delete_call
      | "(" expr ")"
 
 call_expr: CALL NAME ("." NAME)? "(" arglist? ")"
@@ -192,6 +208,11 @@ JOIN: "соединить"
 STARTS: "начинается"
 ENDS: "заканчивается"
 REVERSE: "перевернуть"
+FILE_READ: "файл_прочитать"
+FILE_WRITE: "файл_записать"
+FILE_APPEND: "файл_добавить"
+FILE_EXISTS: "файл_существует"
+FILE_DELETE: "файл_удалить"
 
 BINOP: "+" | "-" | "*" | "/" | "=" | "!=" | "<" | "<=" | ">" | ">=" | AND | OR
 
@@ -285,6 +306,11 @@ _STMT_TYPES = frozenset(
         "continue_stmt",
         "import_stmt",
         "from_stmt",
+        "file_read_stmt",
+        "file_write_stmt",
+        "file_append_stmt",
+        "file_exists_stmt",
+        "file_delete_stmt",
     }
 )
 

@@ -711,6 +711,143 @@ def test_input_string(monkeypatch, capsys):
     assert out == "Вася\n"
 
 
+# --- файлы ----------------------------------------------------------------
+
+
+def _file_run(tmp_path, source: str, capsys) -> str:
+    """Выполнить исходник, подставляя путь к tmp_path вместо «ПУТЬ»."""
+    path = tmp_path / "файл.txt"
+    src = source.replace("«ПУТЬ»", f'"{path}"')
+    return run(src, capsys)
+
+
+def test_file_write_and_read_roundtrip(tmp_path, capsys):
+    out = _file_run(
+        tmp_path,
+        'файл_записать(«ПУТЬ», "Привет, мир")\n'
+        "печать(файл_прочитать(«ПУТЬ»))\n",
+        capsys,
+    )
+    assert out == "Привет, мир\n"
+
+
+def test_file_write_creates_file(tmp_path, capsys):
+    path = tmp_path / "новый.txt"
+    out = run(f'файл_записать("{path}", "текст")\n', capsys)
+    assert out == ""
+    assert path.read_text(encoding="utf-8") == "текст"
+
+
+def test_file_append_twice(tmp_path, capsys):
+    out = _file_run(
+        tmp_path,
+        'файл_записать(«ПУТЬ», "раз")\n'
+        'файл_добавить(«ПУТЬ», "два")\n'
+        'файл_добавить(«ПУТЬ», "три")\n'
+        "печать(файл_прочитать(«ПУТЬ»))\n",
+        capsys,
+    )
+    assert out == "раздватри\n"
+
+
+def test_file_append_to_missing_creates(tmp_path, capsys):
+    out = _file_run(
+        tmp_path,
+        'файл_добавить(«ПУТЬ», "создал")\n'
+        "печать(файл_прочитать(«ПУТЬ»))\n",
+        capsys,
+    )
+    assert out == "создал\n"
+
+
+def test_file_exists(tmp_path, capsys):
+    out = _file_run(
+        tmp_path,
+        'печать(файл_существует(«ПУТЬ»))\n'
+        'файл_записать(«ПУТЬ», "x")\n'
+        "печать(файл_существует(«ПУТЬ»))\n",
+        capsys,
+    )
+    assert out == "ложь\nистина\n"
+
+
+def test_file_delete(tmp_path, capsys):
+    out = _file_run(
+        tmp_path,
+        'файл_записать(«ПУТЬ», "x")\n'
+        'файл_удалить(«ПУТЬ»)\n'
+        "печать(файл_существует(«ПУТЬ»))\n",
+        capsys,
+    )
+    assert out == "ложь\n"
+
+
+def test_file_russian_name(tmp_path, capsys):
+    path = tmp_path / "заметки.txt"
+    out = run(
+        f'файл_записать("{path}", "погода")\n'
+        f"печать(файл_прочитать(\"{path}\"))\n",
+        capsys,
+    )
+    assert out == "погода\n"
+
+
+def test_file_read_empty(tmp_path, capsys):
+    out = _file_run(
+        tmp_path,
+        'файл_записать(«ПУТЬ», "")\n'
+        'печать("[" + файл_прочитать(«ПУТЬ») + "]")\n',
+        capsys,
+    )
+    assert out == "[]\n"
+
+
+def test_file_write_number(tmp_path, capsys):
+    out = _file_run(
+        tmp_path,
+        "файл_записать(«ПУТЬ», 42)\n"
+        "печать(файл_прочитать(«ПУТЬ»))\n",
+        capsys,
+    )
+    assert out == "42\n"
+
+
+def test_file_read_missing_raises(tmp_path):
+    path = tmp_path / "нет.txt"
+    with pytest.raises(LuLangError, match="Не нашёл файл"):
+        Interpreter().run(build_ast(parse(f'печать(файл_прочитать("{path}"))')))
+
+
+def test_file_delete_missing_raises(tmp_path):
+    path = tmp_path / "нет.txt"
+    with pytest.raises(LuLangError, match="Не нашёл файл"):
+        Interpreter().run(build_ast(parse(f'файл_удалить("{path}")')))
+
+
+def test_file_commands_reserved_as_keywords():
+    from lark import LarkError
+
+    for word in (
+        "файл_прочитать",
+        "файл_записать",
+        "файл_добавить",
+        "файл_существует",
+        "файл_удалить",
+    ):
+        with pytest.raises(LarkError):
+            parse(f"запомнить {word} = 1")
+
+
+def test_file_read_wrong_type_raises():
+    with pytest.raises(LuLangError, match="ожидает строку"):
+        Interpreter().run(build_ast(parse("печать(файл_прочитать(5))")))
+
+
+def test_file_exists_wrong_type_raises():
+    with pytest.raises(LuLangError, match="ожидает строку"):
+        Interpreter().run(build_ast(parse("печать(файл_существует(истина))")))
+
+
 # --- модули ---------------------------------------------------------------
 
 

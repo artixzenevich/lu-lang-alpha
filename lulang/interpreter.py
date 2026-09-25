@@ -27,6 +27,11 @@ from .nodes import (
     CodeCall,
     ContinueStmt,
     EndsCall,
+    FileAppendCall,
+    FileDeleteCall,
+    FileExistsCall,
+    FileReadCall,
+    FileWriteCall,
     FindCall,
     ForStmt,
     FromStmt,
@@ -144,6 +149,11 @@ class Interpreter:
             self._array_add(self.eval(stmt.array), self.eval(stmt.value))
         elif isinstance(stmt, ArrayRemoveCall):
             self._array_remove(self.eval(stmt.array), self.eval(stmt.index))
+        elif isinstance(
+            stmt,
+            (FileReadCall, FileWriteCall, FileAppendCall, FileExistsCall, FileDeleteCall),
+        ):
+            self.eval(stmt)
         elif isinstance(stmt, IfStmt):
             self._if(stmt)
         elif isinstance(stmt, WhileStmt):
@@ -287,6 +297,16 @@ class Interpreter:
             return self._ends(self.eval(node.string), self.eval(node.suffix))
         if isinstance(node, ReverseCall):
             return self._reverse(self.eval(node.arg))
+        if isinstance(node, FileReadCall):
+            return self._file_read(self.eval(node.arg))
+        if isinstance(node, FileWriteCall):
+            return self._file_write(self.eval(node.path), self.eval(node.text))
+        if isinstance(node, FileAppendCall):
+            return self._file_append(self.eval(node.path), self.eval(node.text))
+        if isinstance(node, FileExistsCall):
+            return self._file_exists(self.eval(node.arg))
+        if isinstance(node, FileDeleteCall):
+            return self._file_delete(self.eval(node.arg))
         if isinstance(node, InputExpr):
             return self._read_input()
         if isinstance(node, CallExpr):
@@ -642,6 +662,57 @@ class Interpreter:
         if isinstance(s, str):
             return s[::-1]
         raise LuLangError("«перевернуть» работает только со строками")
+
+    def _file_path(self, value, command):
+        if not isinstance(value, str):
+            raise LuLangError(f"«{command}» ожидает строку — имя файла")
+        return Path(value)
+
+    def _file_read(self, path):
+        path = self._file_path(path, "файл_прочитать")
+        try:
+            return path.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            raise LuLangError(f"Не нашёл файл «{path}»")
+        except OSError as exc:
+            raise LuLangError(f"Не получилось прочитать файл «{path}»: {exc}")
+
+    def _file_write(self, path, text):
+        path = self._file_path(path, "файл_записать")
+        try:
+            path.write_text(self._file_text(text), encoding="utf-8")
+        except OSError as exc:
+            raise LuLangError(f"Не получилось записать файл «{path}»: {exc}")
+        return None
+
+    def _file_append(self, path, text):
+        path = self._file_path(path, "файл_добавить")
+        try:
+            with open(path, "a", encoding="utf-8") as handle:
+                handle.write(self._file_text(text))
+        except OSError as exc:
+            raise LuLangError(f"Не получилось дополнить файл «{path}»: {exc}")
+        return None
+
+    def _file_exists(self, path):
+        path = self._file_path(path, "файл_существует")
+        return path.is_file()
+
+    def _file_delete(self, path):
+        path = self._file_path(path, "файл_удалить")
+        try:
+            path.unlink()
+        except FileNotFoundError:
+            raise LuLangError(f"Не нашёл файл «{path}»")
+        except OSError as exc:
+            raise LuLangError(f"Не получилось удалить файл «{path}»: {exc}")
+        return None
+
+    @staticmethod
+    def _file_text(value):
+        if isinstance(value, str):
+            return value
+        return Interpreter._format(value)
 
     def _read_input(self):
         text = input().strip()

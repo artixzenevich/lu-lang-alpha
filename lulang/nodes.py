@@ -129,8 +129,15 @@ class AbsCall(Node):
 
 
 @dataclass
+class ModCall(Node):
+    left: Node
+    right: Node
+
+
+@dataclass
 class RandomCall(Node):
-    arg: Node
+    low: Node | None = None
+    high: Node | None = None
 
 
 @dataclass
@@ -278,6 +285,13 @@ class ForStmt(Node):
 
 
 @dataclass
+class ForInStmt(Node):
+    var: str
+    iterable: Node
+    body: list
+
+
+@dataclass
 class RepeatStmt(Node):
     count: Node
     body: list
@@ -323,7 +337,7 @@ Expr = Union[
     Number, String, Char, Bool, Null, Variable, Array, Object,
     UnaryNeg, UnaryNot, BinOp, IndexGet, MemberGet, LengthCall,
     CodeCall, ChrCall, FindCall, SubstrCall, ArrayAddCall,
-    ArrayRemoveCall, SqrtCall, AbsCall, RandomCall, RoundCall,
+    ArrayRemoveCall, SqrtCall, AbsCall, ModCall, RandomCall, RoundCall,
     UpperCall, LowerCall, ReplaceCall, SplitCall, JoinCall,
     StartsCall, EndsCall, ReverseCall, FileReadCall, FileWriteCall,
     FileAppendCall, FileExistsCall, FileDeleteCall, ToNumberCall,
@@ -332,6 +346,6 @@ Expr = Union[
 ]
 Stmt = Union[
     PrintStmt, CallStmt, AssignStmt, IfStmt, SwitchStmt, WhileStmt, ForStmt,
-    RepeatStmt, ProcDef, ReturnStmt, BreakStmt, ContinueStmt, ImportStmt,
-    FromStmt,
+    ForInStmt, RepeatStmt, ProcDef, ReturnStmt, BreakStmt, ContinueStmt,
+    ImportStmt, FromStmt,
 ]

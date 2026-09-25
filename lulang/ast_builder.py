@@ -22,6 +22,7 @@ from .nodes import (
     FileReadCall,
     FileWriteCall,
     FindCall,
+    ForInStmt,
     ForStmt,
     FromStmt,
     IfStmt,
@@ -32,6 +33,7 @@ from .nodes import (
     LengthCall,
     LowerCall,
     MemberGet,
+    ModCall,
     Node,
     Null,
     Number,
@@ -159,6 +161,13 @@ class AstBuilder(Transformer):
             body=children[6],
         )
 
+    def for_in_stmt(self, *children):
+        return ForInStmt(
+            var=str(children[1]),
+            iterable=children[3],
+            body=children[4],
+        )
+
     def repeat_stmt(self, *children):
         return RepeatStmt(count=children[1], body=children[3])
 
@@ -268,7 +277,13 @@ class AstBuilder(Transformer):
         return AbsCall(arg=children[2])
 
     def random_call(self, *children):
-        return RandomCall(arg=children[2])
+        nodes = [c for c in children if isinstance(c, Node)]
+        if len(nodes) == 1:
+            return RandomCall(high=nodes[0])
+        return RandomCall(low=nodes[0], high=nodes[1])
+
+    def mod_call(self, *children):
+        return ModCall(left=children[2], right=children[4])
 
     def round_call(self, *children):
         return RoundCall(arg=children[2])

@@ -33,6 +33,7 @@ from .nodes import (
     FileReadCall,
     FileWriteCall,
     FindCall,
+    ForInStmt,
     ForStmt,
     FromStmt,
     IfStmt,
@@ -43,6 +44,7 @@ from .nodes import (
     LengthCall,
     LowerCall,
     MemberGet,
+    ModCall,
     Null,
     Number,
     Object,
@@ -165,6 +167,8 @@ class Interpreter:
             self._while(stmt)
         elif isinstance(stmt, ForStmt):
             self._for(stmt)
+        elif isinstance(stmt, ForInStmt):
+            self._for_in(stmt)
         elif isinstance(stmt, RepeatStmt):
             self._repeat(stmt)
         elif isinstance(stmt, ProcDef):
@@ -219,6 +223,23 @@ class Interpreter:
         count = 0
         for value in range(start, end + 1):
             self._set_var(stmt.var, float(value), is_declaration=True)
+            try:
+                self._run_block(stmt.body)
+            except _Break:
+                break
+            except _Continue:
+                continue
+            count += 1
+            if count > _LOOP_LIMIT:
+                raise LuLangError("Похоже, цикл «для» не может остановиться")
+
+    def _for_in(self, stmt):
+        items = self.eval(stmt.iterable)
+        if not isinstance(items, (list, str)):
+            raise LuLangError("«для ... из ...» работает только с массивами и строками")
+        count = 0
+        for value in items:
+            self._set_var(stmt.var, value, is_declaration=True)
             try:
                 self._run_block(stmt.body)
             except _Break:
@@ -291,7 +312,10 @@ class Interpreter:
         if isinstance(node, AbsCall):
             return self._abs(self.eval(node.arg))
         if isinstance(node, RandomCall):
-            return self._random(self.eval(node.arg))
+            low = self.eval(node.low) if node.low is not None else None
+            return self._random(low, self.eval(node.high))
+        if isinstance(node, ModCall):
+            return self._mod(self.eval(node.left), self.eval(node.right))
         if isinstance(node, RoundCall):
             return self._round(self.eval(node.arg))
         if isinstance(node, UpperCall):
@@ -585,7 +609,12 @@ class Interpreter:
     def _find(self, haystack, needle):
         if isinstance(haystack, str) and isinstance(needle, str):
             return float(haystack.find(needle))
-        raise LuLangError("«найти» работает только со строками")
+        if isinstance(haystack, list):
+            for i, item in enumerate(haystack):
+                if _equal(item, needle):
+                    return float(i)
+            return -1.0
+        raise LuLangError("«найти» работает только со строками и массивами")
 
     def _substr(self, s, start, length):
         if not isinstance(s, str):
@@ -625,15 +654,31 @@ class Interpreter:
             return float(abs(x))
         raise LuLangError("«модуль» ожидает число")
 
-    def _random(self, x):
-        if isinstance(x, bool):
+    def _mod(self, left, right):
+        if isinstance(left, bool) or isinstance(right, bool):
+            raise LuLangError("«остаток» ожидает числа")
+        if not isinstance(left, (int, float)) or not isinstance(right, (int, float)):
+            raise LuLangError("«остаток» ожидает числа")
+        try:
+            return left % right
+        except ZeroDivisionError:
+            raise LuLangError("На ноль делить нельзя!")
+
+    def _random(self, low, high):
+        if isinstance(high, bool):
             raise LuLangError("«случ» ожидает число")
-        if isinstance(x, (int, float)):
-            n = int(x)
+        if low is None:
+            n = self._as_int(high)
             if n <= 0:
                 raise LuLangError("«случ» ожидает положительное число")
             return float(random.randrange(n))
-        raise LuLangError("«случ» ожидает число")
+        if isinstance(low, bool):
+            raise LuLangError("«случ» ожидает число")
+        a = self._as_int(low)
+        b = self._as_int(high)
+        if a > b:
+            raise LuLangError("«случ»: начало не может быть больше конца")
+        return float(random.randint(a, b))
 
     def _round(self, x):
         if isinstance(x, (int, float)):

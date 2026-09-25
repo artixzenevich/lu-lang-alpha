@@ -1039,6 +1039,178 @@ def test_switch_and_conversion_keywords_reserved():
             parse(f"запомнить {word} = 1")
 
 
+# --- остаток, перебор, случайное в диапазоне, поиск в массиве -------------
+
+
+def test_modulo(capsys):
+    out = run("печать(остаток(7, 3))\nпечать(остаток(10, 5))\n", capsys)
+    assert out == "1\n0\n"
+
+
+def test_modulo_negative(capsys):
+    out = run("печать(остаток(-7, 3))\n", capsys)
+    assert out == "2\n"
+
+
+def test_modulo_float(capsys):
+    out = run("печать(остаток(7.5, 2))\n", capsys)
+    assert out == "1.5\n"
+
+
+def test_modulo_by_zero_raises():
+    with pytest.raises(LuLangError, match="На ноль"):
+        Interpreter().run(build_ast(parse("печать(остаток(1, 0))")))
+
+
+def test_modulo_wrong_type_raises():
+    with pytest.raises(LuLangError, match="ожидает числа"):
+        Interpreter().run(build_ast(parse('печать(остаток("а", 2))')))
+
+
+def test_for_in_array(capsys):
+    out = run(
+        'запомнить фрукты = ["яблоко", "груша", "слива"]\n'
+        "для x из фрукты\n"
+        "    печать(x)\n"
+        "конец\n",
+        capsys,
+    )
+    assert out == "яблоко\nгруша\nслива\n"
+
+
+def test_for_in_array_literal(capsys):
+    out = run(
+        "для x из [1, 2, 3]\n"
+        "    печать(x * 2)\n"
+        "конец\n",
+        capsys,
+    )
+    assert out == "2\n4\n6\n"
+
+
+def test_for_in_string(capsys):
+    out = run(
+        'для б из "лу"\n'
+        "    печать(б)\n"
+        "конец\n",
+        capsys,
+    )
+    assert out == "л\nу\n"
+
+
+def test_for_in_var_after_loop(capsys):
+    # переменная цикла доступна после цикла и хранит последний элемент
+    out = run(
+        "для x из [1, 2, 3]\n"
+        "    печать(x)\n"
+        "конец\n"
+        "печать(x)\n",
+        capsys,
+    )
+    assert out == "1\n2\n3\n3\n"
+
+
+def test_for_in_empty_array(capsys):
+    out = run(
+        "для x из []\n"
+        "    печать(x)\n"
+        "конец\n"
+        'печать("после")\n',
+        capsys,
+    )
+    assert out == "после\n"
+
+
+def test_for_in_break(capsys):
+    out = run(
+        "для x из [1, 2, 3, 4]\n"
+        "    если x = 3 то\n        прервать\n    конец\n"
+        "    печать(x)\n"
+        "конец\n",
+        capsys,
+    )
+    assert out == "1\n2\n"
+
+
+def test_for_in_continue(capsys):
+    out = run(
+        "для x из [1, 2, 3]\n"
+        "    если x = 2 то\n        продолжить\n    конец\n"
+        "    печать(x)\n"
+        "конец\n",
+        capsys,
+    )
+    assert out == "1\n3\n"
+
+
+def test_for_in_wrong_type_raises():
+    with pytest.raises(LuLangError, match="массивами и строками"):
+        Interpreter().run(build_ast(parse("для x из 5\n    печать(x)\nконец")))
+
+
+def test_for_in_sum(capsys):
+    out = run(
+        "запомнить сумма = 0\n"
+        "для x из [1, 2, 3, 4]\n"
+        "    сумма = сумма + x\n"
+        "конец\n"
+        "печать(сумма)\n",
+        capsys,
+    )
+    assert out == "10\n"
+
+
+def test_random_range_inclusive(capsys):
+    for _ in range(100):
+        out = run("печать(случ(1, 6))\n", capsys)
+        val = int(out.strip())
+        assert 1 <= val <= 6, f"случайное число {val} вне диапазона 1..6"
+
+
+def test_random_range_single_value(capsys):
+    out = run("печать(случ(7, 7))\n", capsys)
+    assert out == "7\n"
+
+
+def test_random_range_reversed_raises():
+    with pytest.raises(LuLangError, match="больше конца"):
+        Interpreter().run(build_ast(parse("печать(случ(5, 1))")))
+
+
+def test_random_old_single_arg_still_works(capsys):
+    for _ in range(50):
+        out = run("печать(случ(10))\n", capsys)
+        val = int(out.strip())
+        assert 0 <= val < 10
+
+
+def test_find_in_array(capsys):
+    out = run(
+        'запомнить a = ["яблоко", "груша", "слива"]\n'
+        'печать(найти(a, "груша"))\n'
+        'печать(найти(a, "персик"))\n',
+        capsys,
+    )
+    assert out == "1\n-1\n"
+
+
+def test_find_in_number_array(capsys):
+    out = run("печать(найти([10, 20, 30], 30))\nпечать(найти([10, 20], 15))\n", capsys)
+    assert out == "2\n-1\n"
+
+
+def test_find_string_still_works(capsys):
+    out = run('печать(найти("привет", "и"))\n', capsys)
+    assert out == "2\n"
+
+
+def test_ostatok_keyword_reserved():
+    from lark import LarkError
+
+    with pytest.raises(LarkError):
+        parse("запомнить остаток = 1")
+
+
 # --- модули ---------------------------------------------------------------
 
 

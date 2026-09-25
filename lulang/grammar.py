@@ -24,7 +24,7 @@ _KEYWORDS = (
     "случ|округлить|вверх|вниз|заменить|разделить|соединить|начинается|"
     "заканчивается|перевернуть|прервать|продолжить|подключить|как|из|взять|всё|"
     "файл_прочитать|файл_записать|файл_добавить|файл_существует|файл_удалить|"
-    "переключить|случай|тип_число|тип_строка"
+    "переключить|случай|тип_число|тип_строка|остаток"
 )
 
 GRAMMAR = r"""
@@ -49,6 +49,7 @@ start: stmt*
      | file_exists_stmt
      | file_delete_stmt
      | switch_stmt
+     | for_in_stmt
      | import_stmt
      | from_stmt
      | empty_stmt
@@ -74,6 +75,7 @@ case_values: expr ("," expr)*
 
 while_stmt: WHILE expr stmts END
 for_stmt: FOR NAME FROM expr TO expr stmts END
+for_in_stmt: FOR NAME IZ expr stmts END
 repeat_stmt: REPEAT expr TIMES stmts END
 proc_def: PROC NAME "(" params? ")" stmts END
 params: NAME ("," NAME)*
@@ -139,7 +141,8 @@ comparison: additive (comparison_op additive)?
       | ARRAY_REMOVE "(" expr "," expr ")" -> array_remove_call
       | SQRT "(" expr ")" -> sqrt_call
       | ABS "(" expr ")" -> abs_call
-      | RANDOM "(" expr ")" -> random_call
+      | RANDOM "(" expr ("," expr)? ")" -> random_call
+      | MOD "(" expr "," expr ")" -> mod_call
       | ROUND "(" expr ")" -> round_call
       | UPPER "(" expr ")" -> upper_call
       | LOWER "(" expr ")" -> lower_call
@@ -207,6 +210,7 @@ ARRAY_REMOVE: "удалить"
 SQRT: "корень"
 ABS: "модуль"
 RANDOM: "случ"
+MOD: "остаток"
 ROUND: "округлить"
 UPPER: "вверх"
 LOWER: "вниз"
@@ -324,6 +328,7 @@ _STMT_TYPES = frozenset(
         "file_exists_stmt",
         "file_delete_stmt",
         "switch_stmt",
+        "for_in_stmt",
     }
 )
 

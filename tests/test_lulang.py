@@ -1,6 +1,7 @@
 """Тесты lu-lang: парсер и интерпретатор."""
 
 import pytest
+from pathlib import Path
 
 from lulang.ast_builder import build_ast
 from lulang.grammar import parse
@@ -1209,6 +1210,43 @@ def test_ostatok_keyword_reserved():
 
     with pytest.raises(LarkError):
         parse("запомнить остаток = 1")
+
+
+# --- черепашка (графика) -------------------------------------------------
+
+
+_ЧЕРЕПАШКА_ПУТЬ = (
+    Path(__file__).resolve().parent.parent / "lulang" / "библиотеки" / "черепашка.py"
+)
+
+
+def test_turtle_module_has_commands():
+    """Модуль объявляет все команды черепашки (не требует дисплея)."""
+    import re
+
+    source = _ЧЕРЕПАШКА_ПУТЬ.read_text(encoding="utf-8")
+    for name in (
+        "вперёд",
+        "назад",
+        "вправо",
+        "влево",
+        "поднять_перо",
+        "опустить_перо",
+        "цвет",
+        "круг",
+        "точка",
+        "скорость",
+        "готово",
+    ):
+        assert re.search(rf"^def {name}\(", source, re.M), f"в модуле нет команды {name}"
+
+
+def test_turtle_module_loads_without_window():
+    """Подключение модуля не открывает окно (нужен графический экран)."""
+    pytest.importorskip("turtle")
+    interp = Interpreter()
+    interp.run(build_ast(parse("подключить черепашка")))
+    assert "черепашка" in interp.modules
 
 
 # --- модули ---------------------------------------------------------------

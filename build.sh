@@ -211,20 +211,35 @@ fi
 
 _check_stdlib_py="$ROOT_DIR/build/check_stdlib.py"
 _check_stdlib_lu="$ROOT_DIR/build/_check_stdlib.lu"
-cat > "$_check_stdlib_py" <<'PY'
-import importlib
-
-МОДУЛИ = [
-    "math", "time", "os", "sys", "json", "sqlite3", "random", "re",
-    "collections", "itertools", "functools", "datetime", "csv", "pathlib",
-    "tempfile", "shutil", "hashlib", "base64", "binascii", "struct",
-    "socket", "ssl", "zlib", "gzip", "bz2", "lzma", "subprocess", "threading",
-    "urllib", "http", "xml", "email", "logging", "argparse", "configparser",
-    "difflib", "textwrap", "traceback", "inspect", "pkgutil", "importlib",
-    "string", "unicodedata", "heapq", "bisect", "decimal", "fractions",
-    "statistics", "cmath", "turtle", "tkinter", "ctypes", "asyncio",
-    "multiprocessing", "pickle",
-]
+_STDLIB_CHECK_MODULES=(
+    "math" "time" "os" "sys" "json" "sqlite3" "random" "re"
+    "collections" "itertools" "functools" "datetime" "csv" "pathlib"
+    "tempfile" "shutil" "hashlib" "base64" "binascii" "struct"
+    "socket" "ssl" "zlib" "gzip" "bz2" "lzma" "subprocess" "threading"
+    "urllib" "http" "xml" "email" "logging" "argparse" "configparser"
+    "difflib" "textwrap" "traceback" "inspect" "pkgutil" "importlib"
+    "string" "unicodedata" "heapq" "bisect" "decimal" "fractions"
+    "statistics" "cmath" "turtle" "tkinter" "ctypes" "asyncio"
+    "multiprocessing" "pickle"
+)
+# Если в окружении сборки нет Tk, turtle/tkinter в бинарник не попадают —
+# исключаем их из самопроверки, чтобы сборка не падала (см. INSTALL.md).
+if [[ "$_TK_OK" -eq 0 ]]; then
+    _STDLIB_CHECK_MODULES_WITHOUT_TK=()
+    for _m in "${_STDLIB_CHECK_MODULES[@]}"; do
+        [[ "$_m" == "turtle" || "$_m" == "tkinter" ]] || _STDLIB_CHECK_MODULES_WITHOUT_TK+=("$_m")
+    done
+    _STDLIB_CHECK_MODULES=("${_STDLIB_CHECK_MODULES_WITHOUT_TK[@]}")
+fi
+{
+    echo "import importlib"
+    echo
+    echo "МОДУЛИ = ["
+    for _m in "${_STDLIB_CHECK_MODULES[@]}"; do
+        printf '    "%s",\n' "$_m"
+    done
+    echo "]"
+    cat <<'PY'
 
 def всё_на_месте():
     недоступны = []
@@ -235,10 +250,11 @@ def всё_на_месте():
             недоступны.append(имя)
     return "ок" if not недоступны else f"нет: {', '.join(недоступны)}"
 PY
+} > "$_check_stdlib_py"
 printf 'подключить check_stdlib\nпечать(выполнить check_stdlib.всё_на_месте())\n' > "$_check_stdlib_lu"
 _check_stdlib_res="$(LU_PATH="$ROOT_DIR/build" "$ROOT_DIR/dist/lu" "$_check_stdlib_lu")"
 if [[ "$_check_stdlib_res" == "ок" ]]; then
-    echo "  стандартная библиотека (52 модуля) — ок"
+    echo "  стандартная библиотека (${#_STDLIB_CHECK_MODULES[@]} модулей) — ок"
 else
     echo "  ОШИБКА: в бинарнике нет стандартных библиотек: $_check_stdlib_res" >&2
     exit 1

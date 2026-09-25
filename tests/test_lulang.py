@@ -1249,6 +1249,32 @@ def test_turtle_module_loads_without_window():
     assert "черепашка" in interp.modules
 
 
+def test_turtle_color_translation(monkeypatch):
+    """Русские названия цветов переводятся в английские имена Tk."""
+    import importlib.util
+    import sys as _sys
+    import types
+
+    fake_turtle = types.ModuleType("turtle")
+    fake_turtle.Turtle = lambda: None
+    monkeypatch.setitem(_sys.modules, "turtle", fake_turtle)
+    spec = importlib.util.spec_from_file_location(
+        "_черепашка_цвета", _ЧЕРЕПАШКА_ПУТЬ
+    )
+    mod = importlib.util.module_from_spec(spec)
+    monkeypatch.setitem(_sys.modules, "_черепашка_цвета", mod)
+    spec.loader.exec_module(mod)
+
+    assert mod._перевести_цвет("синий") == "blue"
+    assert mod._перевести_цвет("Синий") == "blue"
+    assert mod._перевести_цвет("зелёный") == "green"
+    assert mod._перевести_цвет("зеленый") == "green"
+    assert mod._перевести_цвет("красный") == "red"
+    assert mod._перевести_цвет("red") == "red"
+    assert mod._перевести_цвет("#ff0000") == "#ff0000"
+    assert mod._перевести_цвет("неизвестный") == "неизвестный"
+
+
 # --- модули ---------------------------------------------------------------
 
 

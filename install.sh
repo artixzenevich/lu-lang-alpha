@@ -126,6 +126,15 @@ else
     echo "Использую вируальное окружение в $VENV_DIR ..."
 fi
 
+if ! "$VENV_DIR/bin/python" -c 'import turtle, tkinter' >/dev/null 2>&1; then
+    echo
+    echo "ВНИМАНИЕ: в этом Python нет tkinter/turtle — встроенная библиотека"
+    echo "«черепашка» работать не будет. Нужен Python с Tk, например на NixOS:"
+    echo "  nix-shell -p 'python3.withPackages (ps: [ ps.tkinter ])' --run './install.sh'"
+    echo "  (Debian: sudo apt install python3-tk)"
+    echo
+fi
+
 if [[ "$DEV" -eq 1 ]]; then
     echo "Устанавливаю пакет lu-lang в режиме разработки (editable) ..."
     "$VENV_DIR/bin/pip" install -e "$ROOT_DIR"

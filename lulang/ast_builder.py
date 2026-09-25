@@ -49,6 +49,9 @@ from .nodes import (
     StartsCall,
     String,
     SubstrCall,
+    SwitchStmt,
+    ToNumberCall,
+    ToStringCall,
     UnaryNeg,
     UnaryNot,
     UpperCall,
@@ -117,6 +120,24 @@ class AstBuilder(Transformer):
                 else:
                     else_body = child[0]
         return IfStmt(branches=branches, else_body=else_body)
+
+    def switch_stmt(self, *children):
+        cases = []
+        else_body = []
+        for child in children[2:-1]:
+            if isinstance(child, tuple):
+                if len(child) == 2:
+                    cases.append(child)
+                else:
+                    else_body = child[0]
+        return SwitchStmt(expr=children[1], cases=cases, else_body=else_body)
+
+    def case_part(self, *children):
+        lists = [c for c in children if isinstance(c, list)]
+        return (lists[0], lists[1])
+
+    def case_values(self, *children):
+        return [c for c in children if isinstance(c, Node)]
 
     def elif_part(self, *children):
         return (children[2], children[4])
@@ -290,6 +311,12 @@ class AstBuilder(Transformer):
 
     def file_delete_call(self, *children):
         return FileDeleteCall(arg=children[2])
+
+    def to_number(self, *children):
+        return ToNumberCall(arg=children[2])
+
+    def to_string(self, *children):
+        return ToStringCall(arg=children[2])
 
     def call_expr(self, *children):
         name = _call_name(children)

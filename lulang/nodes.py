@@ -212,6 +212,16 @@ class FileDeleteCall(Node):
 
 
 @dataclass
+class ToNumberCall(Node):
+    arg: Node
+
+
+@dataclass
+class ToStringCall(Node):
+    arg: Node
+
+
+@dataclass
 class InputExpr(Node):
     pass
 
@@ -243,6 +253,13 @@ class AssignStmt(Node):
 @dataclass
 class IfStmt(Node):
     branches: list  # [(условие, тело: list), ...]
+    else_body: list
+
+
+@dataclass
+class SwitchStmt(Node):
+    expr: Node
+    cases: list  # [(значения: list, тело: list), ...]
     else_body: list
 
 
@@ -309,11 +326,12 @@ Expr = Union[
     ArrayRemoveCall, SqrtCall, AbsCall, RandomCall, RoundCall,
     UpperCall, LowerCall, ReplaceCall, SplitCall, JoinCall,
     StartsCall, EndsCall, ReverseCall, FileReadCall, FileWriteCall,
-    FileAppendCall, FileExistsCall, FileDeleteCall,
+    FileAppendCall, FileExistsCall, FileDeleteCall, ToNumberCall,
+    ToStringCall,
     InputExpr, CallExpr,
 ]
 Stmt = Union[
-    PrintStmt, CallStmt, AssignStmt, IfStmt, WhileStmt, ForStmt,
+    PrintStmt, CallStmt, AssignStmt, IfStmt, SwitchStmt, WhileStmt, ForStmt,
     RepeatStmt, ProcDef, ReturnStmt, BreakStmt, ContinueStmt, ImportStmt,
     FromStmt,
 ]

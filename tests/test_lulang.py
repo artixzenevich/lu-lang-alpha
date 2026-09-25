@@ -848,6 +848,197 @@ def test_file_exists_wrong_type_raises():
         Interpreter().run(build_ast(parse("печать(файл_существует(истина))")))
 
 
+# --- переключить / случай ------------------------------------------------
+
+
+def test_switch_matching_case(capsys):
+    out = run(
+        "запомнить x = 2\n"
+        "переключить x\n"
+        "случай 1\n    печать(\"один\")\n"
+        "случай 2\n    печать(\"два\")\n"
+        "случай 3\n    печать(\"три\")\n"
+        "конец\n",
+        capsys,
+    )
+    assert out == "два\n"
+
+
+def test_switch_first_match_only(capsys):
+    # нет проваливания — выполняется только первая подходящая ветка
+    out = run(
+        "запомнить x = 2\n"
+        "переключить x\n"
+        "случай 1\n    печать(\"один\")\n"
+        "случай 2\n    печать(\"два\")\n"
+        "случай 2\n    печать(\"два ещё раз\")\n"
+        "конец\n",
+        capsys,
+    )
+    assert out == "два\n"
+
+
+def test_switch_multiple_values(capsys):
+    out = run(
+        "запомнить x = 3\n"
+        "переключить x\n"
+        "случай 1, 2\n    печать(\"мало\")\n"
+        "случай 3, 4\n    печать(\"много\")\n"
+        "конец\n",
+        capsys,
+    )
+    assert out == "много\n"
+
+
+def test_switch_else(capsys):
+    out = run(
+        "запомнить x = 9\n"
+        "переключить x\n"
+        "случай 1\n    печать(\"один\")\n"
+        "иначе\n    печать(\"другое\")\n"
+        "конец\n",
+        capsys,
+    )
+    assert out == "другое\n"
+
+
+def test_switch_no_match_no_else(capsys):
+    out = run(
+        "запомнить x = 9\n"
+        "переключить x\n"
+        "случай 1\n    печать(\"один\")\n"
+        "конец\n"
+        'печать("после")\n',
+        capsys,
+    )
+    assert out == "после\n"
+
+
+def test_switch_strings(capsys):
+    out = run(
+        'запомнить цвет = "красный"\n'
+        "переключить цвет\n"
+        'случай "красный"\n    печать("стоп")\n'
+        'случай "зелёный"\n    печать("иди")\n'
+        "конец\n",
+        capsys,
+    )
+    assert out == "стоп\n"
+
+
+def test_switch_expression(capsys):
+    out = run(
+        "запомнить x = 2\n"
+        "переключить x + 1\n"
+        "случай 3\n    печать(\"три\")\n"
+        "случай 4\n    печать(\"четыре\")\n"
+        "конец\n",
+        capsys,
+    )
+    assert out == "три\n"
+
+
+def test_switch_runs_body_steps(capsys):
+    # в ветке выполняются все команды по порядку
+    out = run(
+        "запомнить x = 1\n"
+        "переключить x\n"
+        "случай 1\n"
+        "    печать(\"а\")\n"
+        "    печать(\"б\")\n"
+        "конец\n",
+        capsys,
+    )
+    assert out == "а\nб\n"
+
+
+def test_switch_inside_procedure(capsys):
+    out = run(
+        "процедура название(день)\n"
+        "    переключить день\n"
+        "    случай 1\n        вернуть \"понедельник\"\n"
+        "    случай 2\n        вернуть \"вторник\"\n"
+        "    иначе\n        вернуть \"не знаю\"\n"
+        "    конец\n"
+        "конец\n"
+        "печать(выполнить название(2))\n"
+        "печать(выполнить название(9))\n",
+        capsys,
+    )
+    assert out == "вторник\nне знаю\n"
+
+
+# --- преобразование типов ------------------------------------------------
+
+
+def test_to_number_from_string(capsys):
+    out = run('печать(тип_число("42") + 1)\n', capsys)
+    assert out == "43\n"
+
+
+def test_to_number_fractional_comma(capsys):
+    out = run('печать(тип_число("3,5") + 0.5)\n', capsys)
+    assert out == "4\n"
+
+
+def test_to_number_fractional_dot(capsys):
+    out = run('печать(тип_число("3.5") + 0.5)\n', capsys)
+    assert out == "4\n"
+
+
+def test_to_number_identity(capsys):
+    out = run("печать(тип_число(7))\nпечать(тип_число(2.5))\n", capsys)
+    assert out == "7\n2.5\n"
+
+
+def test_to_number_invalid_raises():
+    with pytest.raises(LuLangError, match="в число"):
+        Interpreter().run(build_ast(parse('печать(тип_число("абв"))')))
+
+
+def test_to_number_bool_raises():
+    with pytest.raises(LuLangError, match="булево"):
+        Interpreter().run(build_ast(parse("печать(тип_число(истина))")))
+
+
+def test_to_number_wrong_type_raises():
+    with pytest.raises(LuLangError, match="ожидает строку или число"):
+        Interpreter().run(build_ast(parse("печать(тип_число([1]))")))
+
+
+def test_to_string_number(capsys):
+    out = run('печать("число: " + тип_строка(42))\n', capsys)
+    assert out == "число: 42\n"
+
+
+def test_to_string_bool(capsys):
+    out = run('печать(тип_строка(истина) + "!")\n', capsys)
+    assert out == "истина!\n"
+
+
+def test_to_string_nothing(capsys):
+    out = run("печать(тип_строка(ничего))\n", capsys)
+    assert out == "ничего\n"
+
+
+def test_to_string_array(capsys):
+    out = run('печать(тип_строка([1, 2]))\n', capsys)
+    assert out == "[1, 2]\n"
+
+
+def test_to_string_string_identity(capsys):
+    out = run('печать(тип_строка("уже"))\n', capsys)
+    assert out == "уже\n"
+
+
+def test_switch_and_conversion_keywords_reserved():
+    from lark import LarkError
+
+    for word in ("переключить", "случай", "тип_число", "тип_строка"):
+        with pytest.raises(LarkError):
+            parse(f"запомнить {word} = 1")
+
+
 # --- модули ---------------------------------------------------------------
 
 

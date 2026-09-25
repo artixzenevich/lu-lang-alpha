@@ -23,7 +23,8 @@ _KEYWORDS = (
     "длина|код|символ|найти|подстрока|добавить|удалить|корень|модуль|"
     "случ|округлить|вверх|вниз|заменить|разделить|соединить|начинается|"
     "заканчивается|перевернуть|прервать|продолжить|подключить|как|из|взять|всё|"
-    "файл_прочитать|файл_записать|файл_добавить|файл_существует|файл_удалить"
+    "файл_прочитать|файл_записать|файл_добавить|файл_существует|файл_удалить|"
+    "переключить|случай|тип_число|тип_строка"
 )
 
 GRAMMAR = r"""
@@ -47,6 +48,7 @@ start: stmt*
      | file_append_stmt
      | file_exists_stmt
      | file_delete_stmt
+     | switch_stmt
      | import_stmt
      | from_stmt
      | empty_stmt
@@ -65,6 +67,10 @@ file_delete_stmt: FILE_DELETE "(" expr ")"
 if_stmt: IF expr THEN stmts elif_part* else_part? END
 elif_part: ELSE IF expr THEN stmts
 else_part: ELSE stmts
+
+switch_stmt: SWITCH expr case_part+ else_part? END
+case_part: NEWLINE* CASE case_values stmts
+case_values: expr ("," expr)*
 
 while_stmt: WHILE expr stmts END
 for_stmt: FOR NAME FROM expr TO expr stmts END
@@ -149,6 +155,8 @@ comparison: additive (comparison_op additive)?
       | FILE_APPEND "(" expr "," expr ")" -> file_append_call
       | FILE_EXISTS "(" expr ")" -> file_exists_call
       | FILE_DELETE "(" expr ")" -> file_delete_call
+      | TO_NUMBER "(" expr ")" -> to_number
+      | TO_STRING "(" expr ")" -> to_string
      | "(" expr ")"
 
 call_expr: CALL NAME ("." NAME)? "(" arglist? ")"
@@ -213,6 +221,10 @@ FILE_WRITE: "файл_записать"
 FILE_APPEND: "файл_добавить"
 FILE_EXISTS: "файл_существует"
 FILE_DELETE: "файл_удалить"
+SWITCH: "переключить"
+CASE: "случай"
+TO_NUMBER: "тип_число"
+TO_STRING: "тип_строка"
 
 BINOP: "+" | "-" | "*" | "/" | "=" | "!=" | "<" | "<=" | ">" | ">=" | AND | OR
 
@@ -311,6 +323,7 @@ _STMT_TYPES = frozenset(
         "file_append_stmt",
         "file_exists_stmt",
         "file_delete_stmt",
+        "switch_stmt",
     }
 )
 

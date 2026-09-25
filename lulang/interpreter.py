@@ -59,6 +59,9 @@ from .nodes import (
     StartsCall,
     String,
     SubstrCall,
+    SwitchStmt,
+    ToNumberCall,
+    ToStringCall,
     UnaryNeg,
     UnaryNot,
     UpperCall,
@@ -156,6 +159,8 @@ class Interpreter:
             self.eval(stmt)
         elif isinstance(stmt, IfStmt):
             self._if(stmt)
+        elif isinstance(stmt, SwitchStmt):
+            self._switch(stmt)
         elif isinstance(stmt, WhileStmt):
             self._while(stmt)
         elif isinstance(stmt, ForStmt):
@@ -181,6 +186,14 @@ class Interpreter:
     def _if(self, stmt):
         for cond, body in stmt.branches:
             if self._truthy(self.eval(cond)):
+                self._run_block(body)
+                return
+        self._run_block(stmt.else_body)
+
+    def _switch(self, stmt):
+        value = self.eval(stmt.expr)
+        for values, body in stmt.cases:
+            if any(_equal(value, self.eval(case_value)) for case_value in values):
                 self._run_block(body)
                 return
         self._run_block(stmt.else_body)
@@ -307,6 +320,10 @@ class Interpreter:
             return self._file_exists(self.eval(node.arg))
         if isinstance(node, FileDeleteCall):
             return self._file_delete(self.eval(node.arg))
+        if isinstance(node, ToNumberCall):
+            return self._to_number(self.eval(node.arg))
+        if isinstance(node, ToStringCall):
+            return self._to_string(self.eval(node.arg))
         if isinstance(node, InputExpr):
             return self._read_input()
         if isinstance(node, CallExpr):
@@ -713,6 +730,23 @@ class Interpreter:
         if isinstance(value, str):
             return value
         return Interpreter._format(value)
+
+    def _to_number(self, value):
+        if isinstance(value, bool):
+            raise LuLangError("«тип_число» не умеет превращать булево значение в число")
+        if isinstance(value, (int, float)):
+            return value
+        if isinstance(value, str):
+            try:
+                if "." in value or "," in value:
+                    return float(value.replace(",", "."))
+                return int(value)
+            except ValueError:
+                raise LuLangError(f"Не получилось превратить «{value}» в число")
+        raise LuLangError("«тип_число» ожидает строку или число")
+
+    def _to_string(self, value):
+        return self._format(value)
 
     def _read_input(self):
         text = input().strip()
